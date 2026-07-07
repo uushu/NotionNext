@@ -15,6 +15,70 @@ import { checkDataFromAlgolia } from '@/lib/plugins/algolia'
 import pLimit from 'p-limit'
 import { adapterNotionBlockMap } from '@/lib/utils/notion.util'
 
+const normalizeSlug = value =>
+  String(value || '')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase()
+
+/**
+ * 读取 Claude 主题首页的 README 页面。
+ * 复用站点现有 NotionPage 渲染器，避免维护第二套 Notion -> HTML 转换逻辑。
+ */
+async function getClaudeReadmePage(allPages) {
+  const readmePage = allPages?.find(
+    page =>
+      page?.status === 'Published' &&
+      normalizeSlug(page?.slug) === 'readme.md'
+  )
+
+  if (!readmePage) return null
+
+  const fallback = {
+    id: readmePage.id,
+    slug: readmePage.slug,
+    title: readmePage.title,
+    excerpt: readmePage.summary || readmePage.description || '',
+    readmeHtml: ''
+  }
+
+  try {
+    const rawBlockMap = await getPostBlocks(readmePage.id, 'claude-readme', {
+      cacheVersion: readmePage.lastEditedDate
+    })
+
+    if (!rawBlockMap) return fallback
+
+    const adaptedBlockMap = adapterNotionBlockMap(rawBlockMap)
+    const blockMap = adaptedBlockMap?.block
+      ? {
+          ...adaptedBlockMap,
+          block: formatNotionBlock(adaptedBlockMap.block)
+        }
+      : adaptedBlockMap
+
+    if (!blockMap?.block) return fallback
+
+    const [{ renderToStaticMarkup }, { default: NotionPage }] =
+      await Promise.all([
+        import('react-dom/server'),
+        import('@/components/NotionPage')
+      ])
+
+    return {
+      ...fallback,
+      readmeHtml: renderToStaticMarkup(
+        <NotionPage
+          post={{ ...readmePage, blockMap }}
+          className='claude-readme-notion'
+        />
+      )
+    }
+  } catch (error) {
+    console.warn('[Claude README] Failed to render README page:', error)
+    return fallback
+  }
+}
+
 /**
  * 首页布局
  * @param {*} props
@@ -33,10 +97,15 @@ export async function getStaticProps(req) {
   const { locale } = req
   const from = 'index'
   const props = await fetchGlobalAllData({ from, locale })
+  const resolvedTheme = siteConfig(
+    'THEME',
+    BLOG.THEME,
+    props?.NOTION_CONFIG
+  )
+
   if (process.env.NODE_ENV === 'development') {
     const configTheme = BLOG.THEME
     const notionTheme = props?.NOTION_CONFIG?.THEME || null
-    const finalTheme = siteConfig('THEME', BLOG.THEME, props?.NOTION_CONFIG)
     const source = notionTheme ? 'notion:config' : 'blog/env:config'
     console.log(
       '[ThemeResolver][server-static-props]',
@@ -44,7 +113,7 @@ export async function getStaticProps(req) {
         route: '/',
         configTheme,
         notionTheme,
-        finalTheme,
+        finalTheme: resolvedTheme,
         source
       })
     )
@@ -67,6 +136,10 @@ export async function getStaticProps(req) {
   props.posts = props.allPages?.filter(
     page => page.type === 'Post' && page.status === 'Published'
   )
+
+  if (resolvedTheme === 'claude') {
+    props.readmePage = await getClaudeReadmePage(props.allPages)
+  }
 
   // 处理分页
   const POST_LIST_STYLE = siteConfig(

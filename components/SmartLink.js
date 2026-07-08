@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { siteConfig } from '@/lib/config'
 
+// 仅用于单次文章返回定位，不应传播到站内其他链接
+const NON_PERSISTENT_QUERY_KEYS = new Set(['from', 'source'])
+
 // 过滤 <a> 标签不能识别的 props
 const filterDOMProps = props => {
   const {
@@ -55,7 +58,9 @@ const SmartLink = ({ href, children, ...rest }) => {
     const params = new URLSearchParams(queryString)
     const preserved = {}
     for (const [key, value] of params.entries()) {
-      if (value !== '') preserved[key] = value
+      if (value !== '' && !NON_PERSISTENT_QUERY_KEYS.has(key)) {
+        preserved[key] = value
+      }
     }
     return preserved
   }

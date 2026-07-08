@@ -13,9 +13,24 @@ export default function ArticleInfo(props) {
   const { post } = props
 
   const { locale } = useGlobal()
+  const parentPath = post?.category
+    ? `/category/${encodeURIComponent(post.category)}`
+    : '/category'
+  const parentName = post?.category || '文章分类'
 
   return (
     <section className='mt-2 text-gray-600 dark:text-gray-400 leading-8'>
+      {post?.type === 'Post' && (
+        <div className='mb-6'>
+          <SmartLink
+            href={parentPath}
+            className='inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200'>
+            <i className='fas fa-arrow-left text-xs' />
+            <span>返回「{parentName}」</span>
+          </SmartLink>
+        </div>
+      )}
+
       <h2 className='blog-item-title mb-5 font-bold text-black dark:text-white text-4xl no-underline'>
         {siteConfig('POST_TITLE_ICON') && <NotionIcon icon={post?.pageIcon} />}
         {post?.title}

@@ -22,8 +22,11 @@ export default function ArticleInfo(props) {
     ? router.query.source[0]
     : router.query.source
 
-  let parentPath = '/category'
-  let parentText = '返回全部分类'
+  const hasExplicitParent =
+    Boolean(sourceValue) && (sourceType === 'tag' || sourceType === 'category')
+
+  let parentPath = ''
+  let parentText = '返回上一页'
 
   if (sourceType === 'tag' && sourceValue) {
     parentPath = `/tag/${encodeURIComponent(sourceValue)}`
@@ -31,21 +34,41 @@ export default function ArticleInfo(props) {
   } else if (sourceType === 'category' && sourceValue) {
     parentPath = `/category/${encodeURIComponent(sourceValue)}`
     parentText = `返回分类「${sourceValue}」`
-  } else if (post?.category) {
-    parentPath = `/category/${encodeURIComponent(post.category)}`
-    parentText = `返回分类「${post.category}」`
   }
+
+  const handleBack = () => {
+    const fallbackPath = post?.category
+      ? `/category/${encodeURIComponent(post.category)}`
+      : '/category'
+
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push(fallbackPath)
+    }
+  }
+
+  const backButtonClass =
+    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200'
 
   return (
     <section className='mt-2 text-gray-600 dark:text-gray-400 leading-8'>
       {post?.type === 'Post' && (
         <div className='mb-6'>
-          <SmartLink
-            href={parentPath}
-            className='inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200'>
-            <i className='fas fa-arrow-left text-xs' />
-            <span>{parentText}</span>
-          </SmartLink>
+          {hasExplicitParent ? (
+            <SmartLink href={parentPath} className={backButtonClass}>
+              <i className='fas fa-arrow-left text-xs' />
+              <span>{parentText}</span>
+            </SmartLink>
+          ) : (
+            <button
+              type='button'
+              onClick={handleBack}
+              className={backButtonClass}>
+              <i className='fas fa-arrow-left text-xs' />
+              <span>返回上一页</span>
+            </button>
+          )}
         </div>
       )}
 

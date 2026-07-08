@@ -3,6 +3,7 @@ import { useGlobal } from '@/lib/global'
 import { siteConfig } from '@/lib/config'
 import { formatDateFmt } from '@/lib/utils/formatDate'
 import NotionIcon from '@/components/NotionIcon'
+import { useRouter } from 'next/router'
 
 /**
  * 文章描述
@@ -13,10 +14,27 @@ export default function ArticleInfo(props) {
   const { post } = props
 
   const { locale } = useGlobal()
-  const parentPath = post?.category
-    ? `/category/${encodeURIComponent(post.category)}`
-    : '/category'
-  const parentName = post?.category || '文章分类'
+  const router = useRouter()
+  const sourceType = Array.isArray(router.query.from)
+    ? router.query.from[0]
+    : router.query.from
+  const sourceValue = Array.isArray(router.query.source)
+    ? router.query.source[0]
+    : router.query.source
+
+  let parentPath = '/category'
+  let parentText = '返回全部分类'
+
+  if (sourceType === 'tag' && sourceValue) {
+    parentPath = `/tag/${encodeURIComponent(sourceValue)}`
+    parentText = `返回标签「${sourceValue}」`
+  } else if (sourceType === 'category' && sourceValue) {
+    parentPath = `/category/${encodeURIComponent(sourceValue)}`
+    parentText = `返回分类「${sourceValue}」`
+  } else if (post?.category) {
+    parentPath = `/category/${encodeURIComponent(post.category)}`
+    parentText = `返回分类「${post.category}」`
+  }
 
   return (
     <section className='mt-2 text-gray-600 dark:text-gray-400 leading-8'>
@@ -26,7 +44,7 @@ export default function ArticleInfo(props) {
             href={parentPath}
             className='inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200'>
             <i className='fas fa-arrow-left text-xs' />
-            <span>返回「{parentName}」</span>
+            <span>{parentText}</span>
           </SmartLink>
         </div>
       )}

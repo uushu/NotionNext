@@ -7,18 +7,28 @@ import SmartLink from '@/components/SmartLink'
 import CONFIG from '../config'
 
 export const BlogItem = props => {
-  const { post } = props
+  const { post, sourceContext } = props
   const { NOTION_CONFIG } = useGlobal()
   const showPageCover = siteConfig('CLAUDE_POST_COVER_ENABLE', false, CONFIG)
   const showPreview =
     siteConfig('POST_LIST_PREVIEW', false, NOTION_CONFIG) && post.blockMap
+  const postHref = sourceContext
+    ? {
+        pathname: post.href,
+        query: {
+          from: sourceContext.type,
+          source: sourceContext.value
+        }
+      }
+    : post.href
+
   return (
     <div key={post.id} className='claude-article-item'>
       <div className='flex'>
         <div className='article-cover h-full'>
           {showPageCover && (
             <div className='overflow-hidden mr-3 w-48 h-full rounded-lg'>
-              <SmartLink href={post.href} passHref legacyBehavior>
+              <SmartLink href={postHref} passHref legacyBehavior>
                 <LazyImage
                   src={post?.pageCoverThumbnail}
                   className='w-48 h-full object-cover object-center hover:scale-105 duration-300'
@@ -31,7 +41,7 @@ export const BlogItem = props => {
         <article className='article-info flex-1'>
           <h2 className='mb-1'>
             <SmartLink
-              href={post.href}
+              href={postHref}
               className='text-lg font-medium text-[var(--claude-text-primary)] hover:text-[var(--claude-accent)] duration-200 transition-colors'>
               {siteConfig('POST_TITLE_ICON') && (
                 <NotionIcon icon={post.pageIcon} />

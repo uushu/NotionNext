@@ -12,12 +12,18 @@ import { BlogItem } from './BlogItem'
  * @returns
  */
 export default function BlogListPage(props) {
-  const { page = 1, posts, postCount } = props
+  const { page = 1, posts, postCount, category, tag } = props
   const router = useRouter()
   const { NOTION_CONFIG } = useGlobal()
   const POSTS_PER_PAGE = siteConfig('POSTS_PER_PAGE', null, NOTION_CONFIG)
   const totalPage = Math.ceil(postCount / POSTS_PER_PAGE)
   const currentPage = +page
+
+  const sourceContext = tag
+    ? { type: 'tag', value: tag }
+    : category
+      ? { type: 'category', value: category }
+      : null
 
   // 博客列表嵌入广告
   const CLAUDE_POST_AD_ENABLE = siteConfig(
@@ -43,7 +49,7 @@ export default function BlogListPage(props) {
               <AdSlot type='in-article' />
             )}
             {CLAUDE_POST_AD_ENABLE && index + 1 === 4 && <AdSlot type='flow' />}
-            <BlogItem post={p} />
+            <BlogItem post={p} sourceContext={sourceContext} />
           </div>
         ))}
       </div>

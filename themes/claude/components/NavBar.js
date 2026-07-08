@@ -203,12 +203,10 @@ export default function NavBar(props) {
                 </div>
                 <div className='claude-terminal-line claude-terminal-shell' ref={terminalShellRef}>
                   <span className='claude-terminal-shell-text' ref={terminalShellTextRef}>
-                    {`${author}@Macintosh ~ % `}
+                    utto@rabbit-house ~ %{' '}
                   </span>
-                  <span ref={terminalCommandRef}>
-                    <SmartLink href='/' className='claude-terminal-command'>
-                      {blogName}
-                    </SmartLink>
+                  <span className='claude-terminal-command' ref={terminalCommandRef}>
+                    Keep Writing
                   </span>
                   <span className='claude-terminal-cursor' ref={terminalCursorRef} aria-hidden='true' />
                 </div>

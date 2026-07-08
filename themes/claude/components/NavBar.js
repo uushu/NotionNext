@@ -206,7 +206,7 @@ export default function NavBar(props) {
                     utto@rabbit-house ~ %{' '}
                   </span>
                   <span className='claude-terminal-command' ref={terminalCommandRef}>
-                    Keep Writing
+                    keep building
                   </span>
                   <span className='claude-terminal-cursor' ref={terminalCursorRef} aria-hidden='true' />
                 </div>

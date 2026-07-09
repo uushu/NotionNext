@@ -1,0 +1,135 @@
+/* Claude 主题：分类总览卡片，仅作用于 /category 页面 */
+#theme-claude #category-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  align-items: stretch;
+  gap: 1rem !important;
+  width: 100%;
+}
+
+#theme-claude #category-list > a {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+#theme-claude #category-list .claude-nav-link {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+  min-height: 108px;
+  padding: 1.25rem 3.25rem 1.25rem 1.25rem !important;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.55;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(31 41 55);
+  background: rgb(255 255 255);
+  border: 1px solid rgb(229 231 235);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+#theme-claude #category-list .claude-nav-link > i {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-right: 0.9rem !important;
+  border-radius: 0.75rem;
+  color: rgb(120 83 45);
+  background: rgb(248 241 233);
+  font-size: 0.9rem !important;
+}
+
+#theme-claude #category-list .claude-nav-link::after {
+  content: '\f054';
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Font Awesome 5 Free';
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: rgb(156 163 175);
+  transition:
+    transform 180ms ease,
+    color 180ms ease;
+}
+
+#theme-claude #category-list .claude-nav-link:hover {
+  transform: translateY(-2px);
+  border-color: rgb(209 213 219);
+  background: rgb(250 250 249);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 0.07);
+}
+
+#theme-claude #category-list .claude-nav-link:hover::after {
+  transform: translate(3px, -50%);
+  color: rgb(107 114 128);
+}
+
+.dark #theme-claude #category-list .claude-nav-link {
+  color: rgb(229 231 235);
+  background: rgb(17 24 39);
+  border-color: rgb(55 65 81);
+  box-shadow: none;
+}
+
+.dark #theme-claude #category-list .claude-nav-link > i {
+  color: rgb(231 195 154);
+  background: rgb(55 44 35);
+}
+
+.dark #theme-claude #category-list .claude-nav-link::after {
+  color: rgb(107 114 128);
+}
+
+.dark #theme-claude #category-list .claude-nav-link:hover {
+  border-color: rgb(75 85 99);
+  background: rgb(24 32 45);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.24);
+}
+
+.dark #theme-claude #category-list .claude-nav-link:hover::after {
+  color: rgb(156 163 175);
+}
+
+@media (max-width: 639px) {
+  #theme-claude #category-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem !important;
+  }
+
+  #theme-claude #category-list .claude-nav-link {
+    min-height: 92px;
+    padding: 1rem 3rem 1rem 1rem !important;
+  }
+
+  #theme-claude #category-list .claude-nav-link > i {
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-right: 0.75rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #theme-claude #category-list .claude-nav-link,
+  #theme-claude #category-list .claude-nav-link::after {
+    transition: none;
+  }
+
+  #theme-claude #category-list .claude-nav-link:hover {
+    transform: none;
+  }
+}

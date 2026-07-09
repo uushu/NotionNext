@@ -21,7 +21,7 @@ const NotFoundPage = () => {
       <section className='mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-2xl flex-col items-center justify-center px-4 py-8 text-center md:py-12'>
         <div className='mb-2 w-full max-w-[360px]'>
           <img
-            src='/404-rabbit-transparent.svg'
+            src='/404-rabbit-transparent.png'
             alt='摔倒的 utto 兔子'
             width='360'
             height='316'

@@ -1,194 +1,212 @@
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect } from 'react'
 
-const PHRASES = ['记录学习', '分享技术', '保持构建']
+const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT'])
+
+const collectReadableTextNodes = root => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement
+      if (!parent || SKIPPED_TAGS.has(parent.tagName)) {
+        return NodeFilter.FILTER_REJECT
+      }
+
+      return node.nodeValue?.trim()
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT
+    }
+  })
+
+  const entries = []
+  let current = walker.nextNode()
+  while (current) {
+    entries.push({ node: current, text: current.nodeValue || '' })
+    current = walker.nextNode()
+  }
+  return entries
+}
 
 /**
- * Claude 首页 README 卡片中的轻量打字机动画。
- * 使用 Portal 挂载到 README 标题栏下方，避免侵入 ProfileHome 的主体逻辑。
+ * 将 Claude 首页中已经渲染完成的 README 正文逐字显示。
+ * 保留原有 HTML 结构，因此标题、段落、链接和行内样式不会被破坏。
  */
 export default function ReadmeTypewriter({ enabled = true }) {
   const router = useRouter()
-  const [mountNode, setMountNode] = useState(null)
-  const [text, setText] = useState('')
-  const [phraseIndex, setPhraseIndex] = useState(0)
-  const [deleting, setDeleting] = useState(false)
-  const [reduceMotion, setReduceMotion] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined
-
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const updatePreference = () => setReduceMotion(mediaQuery.matches)
-    updatePreference()
-    mediaQuery.addEventListener?.('change', updatePreference)
-
-    return () => mediaQuery.removeEventListener?.('change', updatePreference)
-  }, [])
 
   useEffect(() => {
     if (!enabled || router.pathname !== '/' || typeof document === 'undefined') {
-      setMountNode(null)
       return undefined
     }
 
-    let activeNode = null
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+    if (reduceMotion) return undefined
 
-    const attach = () => {
-      const card = document.querySelector('#theme-claude .claude-readme-card')
-      if (!card) return false
+    let observer
+    let startTimer
+    let typeTimer
+    let finishTimer
+    let cleanupAnimation = () => {}
 
-      let node = card.querySelector('[data-claude-readme-typewriter]')
-      if (!node) {
-        node = document.createElement('div')
-        node.setAttribute('data-claude-readme-typewriter', '')
-        const meta = card.querySelector('.claude-readme-card-meta')
-        if (meta?.nextSibling) {
-          card.insertBefore(node, meta.nextSibling)
-        } else if (meta) {
-          meta.insertAdjacentElement('afterend', node)
+    const startTyping = () => {
+      const card = document.querySelector(
+        '#theme-claude .claude-readme-card'
+      )
+      const readme = card?.querySelector('.markdown-body')
+      if (!card || !readme) return false
+
+      // 清理上一版额外插入的打字机横条。
+      card
+        .querySelector('[data-claude-readme-typewriter]')
+        ?.remove()
+
+      const entries = collectReadableTextNodes(readme)
+      const totalCharacters = entries.reduce(
+        (sum, entry) => sum + entry.text.length,
+        0
+      )
+      if (!entries.length || !totalCharacters) return true
+
+      const previousMinHeight = readme.style.minHeight
+      const previousAriaBusy = readme.getAttribute('aria-busy')
+      const originalHeight = Math.ceil(readme.getBoundingClientRect().height)
+      const cursor = document.createElement('span')
+      cursor.className = 'claude-readme-live-cursor'
+      cursor.setAttribute('aria-hidden', 'true')
+
+      readme.style.minHeight = `${originalHeight}px`
+      readme.setAttribute('aria-busy', 'true')
+      readme.classList.add('claude-readme-is-typing')
+
+      entries.forEach(entry => {
+        entry.node.nodeValue = ''
+      })
+
+      const characterDelay = Math.max(
+        16,
+        Math.min(55, Math.floor(6500 / totalCharacters))
+      )
+      let nodeIndex = 0
+      let characterIndex = 0
+      let finished = false
+
+      const restore = () => {
+        window.clearTimeout(startTimer)
+        window.clearTimeout(typeTimer)
+        window.clearTimeout(finishTimer)
+
+        entries.forEach(entry => {
+          entry.node.nodeValue = entry.text
+        })
+
+        cursor.remove()
+        readme.classList.remove('claude-readme-is-typing')
+        readme.style.minHeight = previousMinHeight
+
+        if (previousAriaBusy === null) {
+          readme.removeAttribute('aria-busy')
         } else {
-          card.prepend(node)
+          readme.setAttribute('aria-busy', previousAriaBusy)
         }
       }
 
-      activeNode = node
-      setMountNode(node)
+      cleanupAnimation = restore
+
+      const typeNextCharacter = () => {
+        if (nodeIndex >= entries.length) {
+          finished = true
+          readme.removeAttribute('aria-busy')
+          readme.classList.remove('claude-readme-is-typing')
+          readme.style.minHeight = previousMinHeight
+          finishTimer = window.setTimeout(() => cursor.remove(), 900)
+          return
+        }
+
+        const entry = entries[nodeIndex]
+        const parent = entry.node.parentNode
+        if (!parent) {
+          nodeIndex += 1
+          characterIndex = 0
+          typeTimer = window.setTimeout(typeNextCharacter, characterDelay)
+          return
+        }
+
+        if (cursor.parentNode !== parent || cursor.previousSibling !== entry.node) {
+          parent.insertBefore(cursor, entry.node.nextSibling)
+        }
+
+        characterIndex += 1
+        entry.node.nodeValue = entry.text.slice(0, characterIndex)
+
+        if (characterIndex >= entry.text.length) {
+          nodeIndex += 1
+          characterIndex = 0
+        }
+
+        typeTimer = window.setTimeout(typeNextCharacter, characterDelay)
+      }
+
+      startTimer = window.setTimeout(typeNextCharacter, 280)
+
+      cleanupAnimation = () => {
+        if (!finished) restore()
+        else {
+          window.clearTimeout(finishTimer)
+          cursor.remove()
+        }
+      }
+
       return true
     }
 
-    attach()
-
-    const observer = new MutationObserver(() => {
-      if (!activeNode?.isConnected) attach()
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
+    if (!startTyping()) {
+      observer = new MutationObserver(() => {
+        if (startTyping()) observer.disconnect()
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+    }
 
     return () => {
-      observer.disconnect()
-      if (activeNode?.isConnected) activeNode.remove()
-      setMountNode(null)
+      observer?.disconnect()
+      cleanupAnimation()
     }
   }, [enabled, router.asPath, router.pathname])
 
-  useEffect(() => {
-    if (!mountNode) return undefined
-
-    if (reduceMotion) {
-      setText(PHRASES.join(' · '))
-      setDeleting(false)
-      return undefined
-    }
-
-    const phrase = PHRASES[phraseIndex]
-    let delay = deleting ? 70 : 120
-
-    if (!deleting && text === phrase) {
-      delay = 1350
-    } else if (deleting && text === '') {
-      delay = 350
-    }
-
-    const timer = window.setTimeout(() => {
-      if (!deleting && text === phrase) {
-        setDeleting(true)
-        return
+  return (
+    <style jsx global>{`
+      .claude-readme-live-cursor {
+        display: inline-block;
+        width: 2px;
+        height: 0.95em;
+        margin-left: 3px;
+        vertical-align: -0.08em;
+        background: currentColor;
+        animation: claude-readme-live-cursor-blink 0.8s steps(1, end)
+          infinite;
       }
 
-      if (deleting && text === '') {
-        setPhraseIndex(index => (index + 1) % PHRASES.length)
-        setDeleting(false)
-        return
+      .claude-readme-is-typing {
+        overflow-anchor: none;
       }
 
-      const nextLength = text.length + (deleting ? -1 : 1)
-      setText(phrase.slice(0, Math.max(0, nextLength)))
-    }, delay)
-
-    return () => window.clearTimeout(timer)
-  }, [deleting, mountNode, phraseIndex, reduceMotion, text])
-
-  if (!mountNode) return null
-
-  return createPortal(
-    <div
-      className='claude-readme-typewriter'
-      role='img'
-      aria-label='记录学习，分享技术，保持构建'>
-      <span className='claude-readme-typewriter-prompt' aria-hidden='true'>
-        $
-      </span>
-      <span className='claude-readme-typewriter-text' aria-hidden='true'>
-        {text || '\u00a0'}
-      </span>
-      {!reduceMotion && (
-        <span className='claude-readme-typewriter-cursor' aria-hidden='true' />
-      )}
-
-      <style jsx>{`
-        .claude-readme-typewriter {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 28px;
-          margin: 14px 0 18px;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-            'Liberation Mono', 'Courier New', monospace;
-          font-size: 15px;
-          line-height: 1.5;
-          color: var(--claude-text-secondary, #57606a);
+      @keyframes claude-readme-live-cursor-blink {
+        0%,
+        48% {
+          opacity: 1;
         }
-
-        .claude-readme-typewriter-prompt {
-          margin-right: 8px;
-          color: var(--claude-accent, #d97757);
-          font-weight: 700;
+        49%,
+        100% {
+          opacity: 0;
         }
+      }
 
-        .claude-readme-typewriter-text {
-          min-width: 5em;
-          text-align: left;
-          white-space: nowrap;
+      @media (prefers-reduced-motion: reduce) {
+        .claude-readme-live-cursor {
+          display: none;
+          animation: none;
         }
-
-        .claude-readme-typewriter-cursor {
-          width: 2px;
-          height: 1.15em;
-          margin-left: 3px;
-          background: currentColor;
-          animation: claude-readme-cursor-blink 0.8s steps(1, end) infinite;
-        }
-
-        @keyframes claude-readme-cursor-blink {
-          0%,
-          48% {
-            opacity: 1;
-          }
-          49%,
-          100% {
-            opacity: 0;
-          }
-        }
-
-        :global(.dark) .claude-readme-typewriter {
-          color: var(--claude-text-secondary, #9ca3af);
-        }
-
-        @media (max-width: 639px) {
-          .claude-readme-typewriter {
-            margin: 12px 0 16px;
-            font-size: 14px;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .claude-readme-typewriter-cursor {
-            animation: none;
-          }
-        }
-      `}</style>
-    </div>,
-    mountNode
+      }
+    `}</style>
   )
 }

@@ -26,6 +26,12 @@ const CONFIG = {
   CLAUDE_PROFILE_AVATAR: process.env.NEXT_PUBLIC_CLAUDE_PROFILE_AVATAR || '', // 头像URL；留空则回退到 AVATAR/siteInfo.icon
   CLAUDE_FOOTER_COPYRIGHT: process.env.NEXT_PUBLIC_CLAUDE_FOOTER_COPYRIGHT || '', // 例如：© 2023-2026 Yicheng；留空则使用 SINCE + AUTHOR
 
+  // 公开访问统计
+  CLAUDE_STATS_ENABLE:
+    process.env.NEXT_PUBLIC_CLAUDE_STATS_ENABLE !== 'false', // 页脚显示访客数、总访问量，文章显示阅读量
+  CLAUDE_SUBSCRIBER_COUNT:
+    process.env.NEXT_PUBLIC_CLAUDE_SUBSCRIBER_COUNT || '', // 可选：手动填写订阅人数；留空则不显示
+
   // README 渲染缓存（可由 Notion 配置文档中的同名字段覆盖）
   CLAUDE_README_CACHE_ENABLED:
     process.env.NEXT_PUBLIC_CLAUDE_README_CACHE_ENABLED !== 'false',

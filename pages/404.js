@@ -5,9 +5,9 @@ import Head from 'next/head'
 
 const Rabbit404Illustration = () => (
   <svg
-    viewBox='0 0 360 330'
+    viewBox='0 0 320 260'
     role='img'
-    aria-label='迷路困惑的 utto 兔子'
+    aria-label='困惑迷路的 utto 兔子'
     className='h-auto w-full overflow-visible'>
     <g
       fill='none'
@@ -15,37 +15,27 @@ const Rabbit404Illustration = () => (
       strokeWidth='7'
       strokeLinecap='round'
       strokeLinejoin='round'>
-      {/* 身体轮廓：顶部留空，由脑袋下沿自然衔接 */}
-      <path d='M125 215c-17 17-19 55-3 74 10 12 25 11 36 0 11 14 33 14 44 0 11 11 26 12 36 0 16-19 14-57-3-74' />
-      <path d='M146 287c-2 12 3 21 14 22' />
-      <path d='M214 287c2 12-3 21-14 22' />
+      {/* 一体式兔子轮廓：只有头和耳朵，不再使用容易交叉错乱的手臂路径 */}
+      <path d='M110 74 C102 48 104 20 120 14 C137 8 148 30 146 66 C155 63 165 63 174 66 C172 30 183 8 200 14 C216 20 218 48 210 74 C246 87 268 116 268 151 C268 199 225 226 160 226 C95 226 52 199 52 151 C52 116 74 87 110 74 Z' />
 
-      {/* 一体式脑袋与长耳朵，避免多段路径接缝 */}
-      <path d='M138 90c-9-26-8-61 10-70 17-8 26 19 21 63 7-2 15-2 22 0-5-44 4-71 21-63 18 9 19 44 10 70 32 8 55 30 60 60 8 48-33 76-102 76S70 198 78 150c5-30 28-52 60-60Z' />
+      {/* 困惑表情 */}
+      <circle cx='112' cy='145' r='8' fill='currentColor' stroke='none' />
+      <circle cx='206' cy='145' r='8' fill='currentColor' stroke='none' />
+      <path d='M96 122 Q112 112 127 121' />
+      <path d='M193 121 Q207 108 221 120' />
+      <ellipse cx='148' cy='174' rx='14' ry='18' />
+      <ellipse cx='172' cy='174' rx='14' ry='18' />
+      <path d='M152 198 Q160 205 168 198' />
 
-      {/* 眼睛与嘴巴 */}
-      <circle cx='132' cy='164' r='8' fill='currentColor' stroke='none' />
-      <circle cx='228' cy='164' r='8' fill='currentColor' stroke='none' />
-      <ellipse cx='168' cy='192' rx='14' ry='18' />
-      <ellipse cx='192' cy='192' rx='14' ry='18' />
-
-      {/* 困惑动作：左手托脸，右手放在肚子上 */}
-      <ellipse cx='122' cy='207' rx='16' ry='20' />
-      <path d='M132 264c-10-14-13-28-10-37' />
-      <ellipse cx='211' cy='254' rx='19' ry='13' />
-      <path d='M229 271c-3-9-9-15-18-17' />
-      <path d='M202 253c4 4 7 8 8 13' />
+      {/* 两侧问号 */}
+      <path d='M37 91 Q29 75 40 64 Q52 52 65 64 Q77 76 66 89 L58 96' />
+      <circle cx='56' cy='111' r='4' fill='currentColor' stroke='none' />
+      <path d='M263 85 Q271 72 283 79 Q296 87 288 99 L280 106' />
+      <circle cx='278' cy='120' r='4' fill='currentColor' stroke='none' />
     </g>
 
-    {/* 腮红 */}
-    <circle cx='105' cy='194' r='18' fill='#f6c7dc' opacity='0.86' />
-    <circle cx='255' cy='194' r='18' fill='#f6c7dc' opacity='0.86' />
-
-    {/* 问号使用文字，避免复杂线稿变形 */}
-    <g fill='currentColor' opacity='0.9' fontFamily='Arial, sans-serif' fontWeight='700'>
-      <text x='44' y='112' fontSize='48'>?</text>
-      <text x='292' y='132' fontSize='38'>?</text>
-    </g>
+    <circle cx='91' cy='177' r='18' fill='#f6c7dc' opacity='0.86' />
+    <circle cx='229' cy='177' r='18' fill='#f6c7dc' opacity='0.86' />
   </svg>
 )
 
@@ -65,7 +55,7 @@ const NotFoundPage = () => {
       </Head>
 
       <section className='mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-2xl flex-col items-center justify-center px-4 py-8 text-center md:py-12'>
-        <div className='mb-2 w-full max-w-[300px] text-[#654729] dark:text-[#d8b58a]'>
+        <div className='mb-3 w-full max-w-[300px] text-[#654729] dark:text-[#d8b58a]'>
           <Rabbit404Illustration />
         </div>
 

@@ -1,9 +1,9 @@
 import SmartLink from '@/components/SmartLink'
-import { useGlobal } from '@/lib/global'
 import { siteConfig } from '@/lib/config'
 import { formatDateFmt } from '@/lib/utils/formatDate'
 import NotionIcon from '@/components/NotionIcon'
 import { useRouter } from 'next/router'
+import CONFIG from '../config'
 
 /**
  * 文章描述
@@ -12,9 +12,8 @@ import { useRouter } from 'next/router'
  */
 export default function ArticleInfo(props) {
   const { post } = props
-
-  const { locale } = useGlobal()
   const router = useRouter()
+  const statsEnable = siteConfig('CLAUDE_STATS_ENABLE', true, CONFIG)
   const sourceType = Array.isArray(router.query.from)
     ? router.query.from[0]
     : router.query.from
@@ -76,35 +75,33 @@ export default function ArticleInfo(props) {
 
       <div className='flex flex-wrap text-[var(--primary-color)] dark:text-gray-300'>
         {post?.type !== 'Page' && (
-          <header className='text-md text-[var(--primary-color)] dark:text-gray-300 flex-wrap flex items-center leading-6'>
-            <div className='space-x-2'>
-              <span className='text-sm'>
-                发布于
-                <SmartLink
-                  className='p-1 hover:text-red-400 transition-all duration-200'
-                  href={`/archive#${formatDateFmt(post?.publishDate, 'yyyy-MM')}`}>
-                  {post.date?.start_date || post.createdTime}
-                </SmartLink>
+          <header className='text-md text-[var(--primary-color)] dark:text-gray-300 flex-wrap flex items-center gap-x-2 leading-6'>
+            <span className='text-sm'>
+              发布于
+              <SmartLink
+                className='p-1 hover:text-red-400 transition-all duration-200'
+                href={`/archive#${formatDateFmt(post?.publishDate, 'yyyy-MM')}`}>
+                {post.date?.start_date || post.createdTime}
+              </SmartLink>
+            </span>
+
+            {statsEnable && (
+              <span
+                className='busuanzi_container_page_pv text-sm'
+                style={{ display: 'none' }}>
+                <i className='fas fa-eye mr-1' />
+                阅读 <span className='busuanzi_value_page_pv'>--</span>
               </span>
-            </div>
+            )}
 
             <div className='text-sm'>
-              {/* {post.category && (
-                <SmartLink href={`/category/${post.category}`} className='p-1'>
-                  {' '}
-                  <span className='hover:text-red-400 transition-all duration-200'>
-                    <i className='fa-regular fa-folder mr-0.5' />
-                    {post.category}
-                  </span>
-                </SmartLink>
-              )} */}
               {post?.tags &&
                 post?.tags?.length > 0 &&
                 post?.tags.map(t => (
                   <SmartLink
                     key={t}
                     href={`/tag/${t}`}
-                    className=' hover:text-red-400 transition-all duration-200'>
+                    className='hover:text-red-400 transition-all duration-200'>
                     <span> #{t}</span>
                   </SmartLink>
                 ))}

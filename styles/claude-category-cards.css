@@ -47,9 +47,62 @@
   height: 2.5rem;
   margin-right: 0.9rem !important;
   border-radius: 0.75rem;
+  font-size: 0.9rem !important;
+}
+
+/* 按卡片顺序循环使用不同图标和柔和色调 */
+#theme-claude #category-list > a:nth-child(6n + 1) .claude-nav-link > i {
   color: rgb(120 83 45);
   background: rgb(248 241 233);
-  font-size: 0.9rem !important;
+}
+
+#theme-claude #category-list > a:nth-child(6n + 1) .claude-nav-link > i::before {
+  content: '\f518' !important; /* book-open */
+}
+
+#theme-claude #category-list > a:nth-child(6n + 2) .claude-nav-link > i {
+  color: rgb(161 98 7);
+  background: rgb(254 243 199);
+}
+
+#theme-claude #category-list > a:nth-child(6n + 2) .claude-nav-link > i::before {
+  content: '\f0e7' !important; /* bolt */
+}
+
+#theme-claude #category-list > a:nth-child(6n + 3) .claude-nav-link > i {
+  color: rgb(29 78 216);
+  background: rgb(219 234 254);
+}
+
+#theme-claude #category-list > a:nth-child(6n + 3) .claude-nav-link > i::before {
+  content: '\f11b' !important; /* gamepad */
+}
+
+#theme-claude #category-list > a:nth-child(6n + 4) .claude-nav-link > i {
+  color: rgb(109 40 217);
+  background: rgb(237 233 254);
+}
+
+#theme-claude #category-list > a:nth-child(6n + 4) .claude-nav-link > i::before {
+  content: '\f121' !important; /* code */
+}
+
+#theme-claude #category-list > a:nth-child(6n + 5) .claude-nav-link > i {
+  color: rgb(15 118 110);
+  background: rgb(204 251 241);
+}
+
+#theme-claude #category-list > a:nth-child(6n + 5) .claude-nav-link > i::before {
+  content: '\f108' !important; /* desktop */
+}
+
+#theme-claude #category-list > a:nth-child(6n) .claude-nav-link > i {
+  color: rgb(190 24 93);
+  background: rgb(252 231 243);
+}
+
+#theme-claude #category-list > a:nth-child(6n) .claude-nav-link > i::before {
+  content: '\f5fd' !important; /* layer-group */
 }
 
 #theme-claude #category-list .claude-nav-link::after {
@@ -86,9 +139,34 @@
   box-shadow: none;
 }
 
-.dark #theme-claude #category-list .claude-nav-link > i {
+.dark #theme-claude #category-list > a:nth-child(6n + 1) .claude-nav-link > i {
   color: rgb(231 195 154);
   background: rgb(55 44 35);
+}
+
+.dark #theme-claude #category-list > a:nth-child(6n + 2) .claude-nav-link > i {
+  color: rgb(253 224 71);
+  background: rgb(66 50 18);
+}
+
+.dark #theme-claude #category-list > a:nth-child(6n + 3) .claude-nav-link > i {
+  color: rgb(147 197 253);
+  background: rgb(30 58 95);
+}
+
+.dark #theme-claude #category-list > a:nth-child(6n + 4) .claude-nav-link > i {
+  color: rgb(196 181 253);
+  background: rgb(57 43 88);
+}
+
+.dark #theme-claude #category-list > a:nth-child(6n + 5) .claude-nav-link > i {
+  color: rgb(94 234 212);
+  background: rgb(22 67 65);
+}
+
+.dark #theme-claude #category-list > a:nth-child(6n) .claude-nav-link > i {
+  color: rgb(249 168 212);
+  background: rgb(82 34 63);
 }
 
 .dark #theme-claude #category-list .claude-nav-link::after {

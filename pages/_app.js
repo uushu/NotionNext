@@ -18,6 +18,7 @@ import ErrorHandler from '@/lib/utils/errorHandler'
 
 // 各种扩展插件 这个要阻塞引入
 import BLOG from '@/blog.config'
+import ClickGlassRipple from '@/components/ClickGlassRipple'
 import ExternalPlugins from '@/components/ExternalPlugins'
 import ReadmeTypewriter from '@/components/ReadmeTypewriter'
 import SEO from '@/components/SEO'
@@ -93,6 +94,7 @@ const MyApp = ({ Component, pageProps }) => {
           <Component {...pageProps} />
         </GLayout>
         <ReadmeTypewriter enabled={theme === 'claude'} />
+        <ClickGlassRipple enabled={theme === 'claude'} />
         <ExternalPlugins {...pageProps} />
       </GlobalContextProvider>
     </AppErrorBoundary>

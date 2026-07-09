@@ -17,13 +17,10 @@
     "url": "http://tangly1024.com"
   },
   "scripts": {
-    "predev": "node scripts/prepare-utto-pet-assets.js",
     "dev": "next dev",
-    "prebuild": "node scripts/prepare-utto-pet-assets.js",
     "build": "cross-env BUILD_MODE=true next build",
     "start": "next start",
     "post-build": "next-sitemap --config next-sitemap.config.js",
-    "preexport": "node scripts/prepare-utto-pet-assets.js",
     "export": "cross-env BUILD_MODE=true EXPORT=true next build && next-sitemap --config next-sitemap.config.js",
     "bundle-report": "cross-env ANALYZE=true next build",
     "build-all-in-dev": "cross-env VERCEL_ENV=production next build",

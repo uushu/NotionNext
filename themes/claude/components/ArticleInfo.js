@@ -26,14 +26,11 @@ export default function ArticleInfo(props) {
     Boolean(sourceValue) && (sourceType === 'tag' || sourceType === 'category')
 
   let parentPath = ''
-  let parentText = '返回上一页'
 
   if (sourceType === 'tag' && sourceValue) {
     parentPath = `/tag/${encodeURIComponent(sourceValue)}`
-    parentText = `返回标签「${sourceValue}」`
   } else if (sourceType === 'category' && sourceValue) {
     parentPath = `/category/${encodeURIComponent(sourceValue)}`
-    parentText = `返回分类「${sourceValue}」`
   }
 
   const handleBack = () => {
@@ -58,7 +55,7 @@ export default function ArticleInfo(props) {
           {hasExplicitParent ? (
             <SmartLink href={parentPath} className={backButtonClass}>
               <i className='fas fa-arrow-left text-xs' />
-              <span>{parentText}</span>
+              <span>返回</span>
             </SmartLink>
           ) : (
             <button
@@ -66,7 +63,7 @@ export default function ArticleInfo(props) {
               onClick={handleBack}
               className={backButtonClass}>
               <i className='fas fa-arrow-left text-xs' />
-              <span>返回上一页</span>
+              <span>返回</span>
             </button>
           )}
         </div>

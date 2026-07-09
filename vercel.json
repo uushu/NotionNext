@@ -1,6 +1,5 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "headers": [],
-  "buildCommand": "node scripts/prepare-utto-pet-assets.js && yarn build"
+  "headers": []
 }

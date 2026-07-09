@@ -1,0 +1,106 @@
+/* 分类页专用覆盖：兼容 legacy Link 生成的 DOM 结构 */
+#theme-claude #category-list > * i {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  margin-right: 0.9rem !important;
+  border-radius: 0.75rem !important;
+  font-family: 'Font Awesome 5 Free' !important;
+  font-size: 0.9rem !important;
+  font-weight: 900 !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 1) i {
+  color: rgb(3 105 161) !important;
+  background: rgb(224 242 254) !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 1) i::before {
+  content: '\f518' !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 2) i {
+  color: rgb(180 83 9) !important;
+  background: rgb(255 237 213) !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 2) i::before {
+  content: '\f0e7' !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 3) i {
+  color: rgb(29 78 216) !important;
+  background: rgb(219 234 254) !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 3) i::before {
+  content: '\f11b' !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 4) i {
+  color: rgb(109 40 217) !important;
+  background: rgb(237 233 254) !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 4) i::before {
+  content: '\f121' !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 5) i {
+  color: rgb(15 118 110) !important;
+  background: rgb(204 251 241) !important;
+}
+
+#theme-claude #category-list > :nth-child(6n + 5) i::before {
+  content: '\f1c0' !important;
+}
+
+#theme-claude #category-list > :nth-child(6n) i {
+  color: rgb(190 24 93) !important;
+  background: rgb(252 231 243) !important;
+}
+
+#theme-claude #category-list > :nth-child(6n) i::before {
+  content: '\f108' !important;
+}
+
+.dark #theme-claude #category-list > :nth-child(6n + 1) i {
+  color: rgb(125 211 252) !important;
+  background: rgb(18 58 79) !important;
+}
+
+.dark #theme-claude #category-list > :nth-child(6n + 2) i {
+  color: rgb(253 186 116) !important;
+  background: rgb(75 42 19) !important;
+}
+
+.dark #theme-claude #category-list > :nth-child(6n + 3) i {
+  color: rgb(147 197 253) !important;
+  background: rgb(30 58 95) !important;
+}
+
+.dark #theme-claude #category-list > :nth-child(6n + 4) i {
+  color: rgb(196 181 253) !important;
+  background: rgb(57 43 88) !important;
+}
+
+.dark #theme-claude #category-list > :nth-child(6n + 5) i {
+  color: rgb(94 234 212) !important;
+  background: rgb(22 67 65) !important;
+}
+
+.dark #theme-claude #category-list > :nth-child(6n) i {
+  color: rgb(249 168 212) !important;
+  background: rgb(82 34 63) !important;
+}
+
+@media (max-width: 639px) {
+  #theme-claude #category-list > * i {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    margin-right: 0.75rem !important;
+  }
+}

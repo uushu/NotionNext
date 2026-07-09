@@ -19,6 +19,7 @@ import ErrorHandler from '@/lib/utils/errorHandler'
 // 各种扩展插件 这个要阻塞引入
 import BLOG from '@/blog.config'
 import ExternalPlugins from '@/components/ExternalPlugins'
+import GithubTodayHeatmapSync from '@/components/GithubTodayHeatmapSync'
 import ReadmeTypewriter from '@/components/ReadmeTypewriter'
 import SEO from '@/components/SEO'
 import { zhCN } from '@clerk/localizations'
@@ -93,6 +94,7 @@ const MyApp = ({ Component, pageProps }) => {
           <Component {...pageProps} />
         </GLayout>
         <ReadmeTypewriter enabled={theme === 'claude'} />
+        <GithubTodayHeatmapSync enabled={theme === 'claude'} />
         <ExternalPlugins {...pageProps} />
       </GlobalContextProvider>
     </AppErrorBoundary>

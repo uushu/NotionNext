@@ -5,45 +5,38 @@ import Head from 'next/head'
 
 const Rabbit404Illustration = () => (
   <svg
-    viewBox='0 0 420 300'
+    viewBox='0 0 320 360'
     role='img'
-    aria-label='摔倒的 utto 兔子线稿'
+    aria-label='蹲坐的 utto 兔子线稿'
     className='h-auto w-full overflow-visible'>
     <g
-      transform='rotate(-4 210 150)'
       fill='none'
       stroke='currentColor'
       strokeWidth='8'
       strokeLinecap='round'
       strokeLinejoin='round'>
-      <path d='M111 144C83 122 55 123 31 145c21 11 37 26 49 46 10-18 20-33 31-47Z' />
-      <path d='M108 144c14-40 54-58 110-53 62 5 102 34 107 76 6 48-34 76-101 80-66 4-116-15-130-53-7-18-2-36 14-50Z' />
-      <path d='M159 101c-7-27-7-56 5-70 11-13 27-6 32 17 5 19 2 38 4 57' />
-      <path d='M221 100c1-24 3-52 17-66 12-12 28-4 31 18 3 19-1 38 0 56' />
-      <path d='M319 146c24-14 37-3 31 19-5 19-17 34-33 44' />
-      <path d='M141 232c-5 23 2 38 17 39 14 1 23-13 24-31' />
+      {/* 身体与小脚 */}
+      <path d='M112 258c-13 22-17 54-7 74 8 16 23 21 38 9 7 13 18 18 29 11 12 8 25 4 34-10 16 10 31 5 39-11 9-20 4-51-8-73' />
+      <path d='M142 341c-2-13-2-25 1-36' />
+      <path d='M178 341c2-13 2-25-1-36' />
 
-      <circle cx='169' cy='164' r='11' />
-      <circle cx='265' cy='159' r='11' />
-      <ellipse cx='210' cy='184' rx='14' ry='18' />
-      <ellipse cx='232' cy='182' rx='14' ry='18' />
+      {/* 大圆脑袋和两只长耳朵 */}
+      <path d='M147 94V58c0-28-15-45-31-34-20 14-22 54-12 88-31 18-49 48-49 82 0 49 42 79 105 79s105-30 105-79c0-34-18-64-49-82 10-34 8-74-12-88-16-11-34 6-34 34v36c-8-3-15-4-23 0Z' />
 
-      <path d='M142 31c-7-10-13-13-21-13' />
-      <path d='M151 19c4-10 10-14 17-16' />
-      <path d='M275 19c7 1 13 5 17 13' />
-      <path d='M288 35c9 2 14 6 18 12' />
-      <path d='M69 112c-11-2-19 0-26 5' />
-      <path d='M54 128c-8 2-14 7-18 13' />
-      <path d='M348 117c10 1 18 5 23 11' />
-      <path d='M361 138c8 3 13 8 16 14' />
-      <path d='M38 203c-9 1-16 5-21 11' />
-      <path d='M354 218c10 0 17 3 23 8' />
-      <path d='M133 272c-7 7-12 11-20 12' />
-      <path d='M169 280c7 0 13-3 18-8' />
+      {/* 眼睛和嘴巴 */}
+      <circle cx='116' cy='180' r='8' fill='currentColor' stroke='none' />
+      <circle cx='204' cy='180' r='8' fill='currentColor' stroke='none' />
+      <ellipse cx='148' cy='207' rx='14' ry='18' />
+      <ellipse cx='172' cy='207' rx='14' ry='18' />
+
+      {/* 抱在胸前的小手 */}
+      <path d='M118 286c16-11 31-7 42 9-10 8-23 13-37 11' />
+      <path d='M202 286c-16-11-31-7-42 9 10 8 23 13 37 11' />
+      <path d='M160 295v27' />
     </g>
 
-    <circle cx='152' cy='193' r='20' fill='#f6c7dc' opacity='0.82' />
-    <circle cx='285' cy='184' r='20' fill='#f6c7dc' opacity='0.82' />
+    <circle cx='92' cy='213' r='20' fill='#f6c7dc' opacity='0.82' />
+    <circle cx='228' cy='213' r='20' fill='#f6c7dc' opacity='0.82' />
   </svg>
 )
 
@@ -63,7 +56,7 @@ const NotFoundPage = () => {
       </Head>
 
       <section className='mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-2xl flex-col items-center justify-center px-4 py-8 text-center md:py-12'>
-        <div className='mb-2 w-full max-w-[360px] text-[#654729] dark:text-[#d8b58a]'>
+        <div className='mb-2 w-full max-w-[300px] text-[#654729] dark:text-[#d8b58a]'>
           <Rabbit404Illustration />
         </div>
 

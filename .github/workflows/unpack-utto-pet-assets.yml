@@ -1,0 +1,39 @@
+name: Unpack utto pet assets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - tools/utto-pet-assets-v1.zip
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack pet assets
+        run: |
+          rm -rf public/pet/utto
+          mkdir -p public/pet/utto
+          rm -rf /tmp/utto-pet-assets
+          mkdir -p /tmp/utto-pet-assets
+          unzip -q -o tools/utto-pet-assets-v1.zip -d /tmp/utto-pet-assets
+          cp -a /tmp/utto-pet-assets/utto-pet-assets-v1/. public/pet/utto/
+
+      - name: Commit generated assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/pet/utto
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(pet): unpack utto pet assets [skip ci]"
+          git push

@@ -5,9 +5,9 @@ import Head from 'next/head'
 
 const Rabbit404Illustration = () => (
   <svg
-    viewBox='0 0 320 360'
+    viewBox='0 0 360 330'
     role='img'
-    aria-label='蹲坐抱手的 utto 兔子线稿'
+    aria-label='迷路困惑的 utto 兔子'
     className='h-auto w-full overflow-visible'>
     <g
       fill='none'
@@ -15,28 +15,37 @@ const Rabbit404Illustration = () => (
       strokeWidth='7'
       strokeLinecap='round'
       strokeLinejoin='round'>
-      {/* 身体：先画在后面，避免与脑袋边缘交叉 */}
-      <path d='M118 248c-18 20-23 59-10 83 8 16 24 21 38 9 8 13 21 16 30 2 10 14 23 11 31-2 14 12 30 7 38-9 13-24 8-63-10-83Z' />
-      <path d='M144 340c-2-12-1-23 2-32' />
-      <path d='M176 340c2-12 1-23-2-32' />
+      {/* 身体轮廓：顶部留空，由脑袋下沿自然衔接 */}
+      <path d='M125 215c-17 17-19 55-3 74 10 12 25 11 36 0 11 14 33 14 44 0 11 11 26 12 36 0 16-19 14-57-3-74' />
+      <path d='M146 287c-2 12 3 21 14 22' />
+      <path d='M214 287c2 12-3 21-14 22' />
 
-      {/* 正面大圆脸和两只长耳朵 */}
-      <path d='M116 104c-10-30-11-69 4-83 15-14 29 7 29 37v35c7-2 15-3 22 0V58c0-30 14-51 29-37 15 14 14 53 4 83 37 17 59 49 59 84 0 51-43 81-103 81S57 239 57 188c0-35 22-67 59-84Z' />
+      {/* 一体式脑袋与长耳朵，避免多段路径接缝 */}
+      <path d='M138 90c-9-26-8-61 10-70 17-8 26 19 21 63 7-2 15-2 22 0-5-44 4-71 21-63 18 9 19 44 10 70 32 8 55 30 60 60 8 48-33 76-102 76S70 198 78 150c5-30 28-52 60-60Z' />
 
-      {/* 五官 */}
-      <circle cx='116' cy='180' r='8' fill='currentColor' stroke='none' />
-      <circle cx='204' cy='180' r='8' fill='currentColor' stroke='none' />
-      <ellipse cx='148' cy='207' rx='14' ry='18' />
-      <ellipse cx='172' cy='207' rx='14' ry='18' />
+      {/* 眼睛与嘴巴 */}
+      <circle cx='132' cy='164' r='8' fill='currentColor' stroke='none' />
+      <circle cx='228' cy='164' r='8' fill='currentColor' stroke='none' />
+      <ellipse cx='168' cy='192' rx='14' ry='18' />
+      <ellipse cx='192' cy='192' rx='14' ry='18' />
 
-      {/* 抱在胸前的手：全部限制在身体内部 */}
-      <path d='M128 291c11-9 23-8 32 4 9-12 21-13 32-4' />
-      <path d='M136 306c9 2 17-2 24-11 7 9 15 13 24 11' />
-      <path d='M160 295v24' />
+      {/* 困惑动作：左手托脸，右手放在肚子上 */}
+      <ellipse cx='122' cy='207' rx='16' ry='20' />
+      <path d='M132 264c-10-14-13-28-10-37' />
+      <ellipse cx='211' cy='254' rx='19' ry='13' />
+      <path d='M229 271c-3-9-9-15-18-17' />
+      <path d='M202 253c4 4 7 8 8 13' />
     </g>
 
-    <circle cx='92' cy='213' r='20' fill='#f6c7dc' opacity='0.82' />
-    <circle cx='228' cy='213' r='20' fill='#f6c7dc' opacity='0.82' />
+    {/* 腮红 */}
+    <circle cx='105' cy='194' r='18' fill='#f6c7dc' opacity='0.86' />
+    <circle cx='255' cy='194' r='18' fill='#f6c7dc' opacity='0.86' />
+
+    {/* 问号使用文字，避免复杂线稿变形 */}
+    <g fill='currentColor' opacity='0.9' fontFamily='Arial, sans-serif' fontWeight='700'>
+      <text x='44' y='112' fontSize='48'>?</text>
+      <text x='292' y='132' fontSize='38'>?</text>
+    </g>
   </svg>
 )
 

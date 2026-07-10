@@ -186,6 +186,9 @@ git remote -v
 
 The MIT License.
 
-## Star History
+## Project Stars
 
-[![Star History Chart](https://api.star-history.com/svg?repos=notionnext-org/NotionNext&type=Date)](https://star-history.com/#notionnext-org/NotionNext&Date)
+[![GitHub stars](https://img.shields.io/github/stars/notionnext-org/NotionNext?style=social)](https://github.com/notionnext-org/NotionNext/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/notionnext-org/NotionNext?style=social)](https://github.com/notionnext-org/NotionNext/forks)
+
+Live star-history charts are temporarily unavailable because GitHub now restricts historical stargazer data to repository owners and collaborators.

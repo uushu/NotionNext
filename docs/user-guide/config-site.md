@@ -18,6 +18,26 @@
 
 以下展开说明
 
+## 新手先看：固定主题并关闭主题切换
+
+如果你只是想把网站固定成 `simple` 主题，并去掉页面上的“切换主题”按钮，优先在 Notion Config 表里添加：
+
+```text
+THEME=simple
+THEME_SWITCH=false
+WIDGET_PET_SWITCH_THEME=false
+```
+
+如果你使用 Vercel 环境变量，则添加：
+
+```text
+NEXT_PUBLIC_THEME=simple
+NEXT_PUBLIC_THEME_SWITCH=false
+NEXT_PUBLIC_WIDGET_PET_SWITCH_THEME=false
+```
+
+改完后重新部署一次。若部署后仍然不是 `simple`，先检查 Notion Config 表里是否已有其它 `THEME` 配置；Notion Config 会覆盖 Vercel 环境变量和 GitHub 代码默认值。
+
 
 ## 1. 在Notion中修改
 

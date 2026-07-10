@@ -20,6 +20,9 @@
 # production
 /build
 
+# generated pet assets
+/public/pet/utto/slow/
+
 # misc
 .DS_Store
 *.pem

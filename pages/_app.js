@@ -57,6 +57,7 @@ const MyApp = ({ Component, pageProps }) => {
     return queryTheme || notionTheme || configTheme
   }, [queryTheme, notionTheme, configTheme])
   const isClaudeTheme = theme?.split(',')[0]?.trim() === 'claude'
+  const isHomePage = route.pathname === '/'
 
   const renderPageProps = useMemo(() => {
     const readmeHtml = pageProps?.readmePage?.readmeHtml
@@ -116,7 +117,9 @@ const MyApp = ({ Component, pageProps }) => {
           <SEO {...renderPageProps} />
           <Component {...renderPageProps} />
         </GLayout>
-        <ReadmeTypewriter enabled={isClaudeTheme} />
+        {isClaudeTheme && isHomePage && (
+          <ReadmeTypewriter key={`readme-${route.asPath}`} enabled />
+        )}
         <ClickGlassRipple enabled={isClaudeTheme} />
         <UttoPet enabled={isClaudeTheme} pageProps={renderPageProps} />
         <ExternalPlugins {...renderPageProps} />

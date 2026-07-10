@@ -1,0 +1,70 @@
+{
+  "name": "utto",
+  "assetBase": "/pet/utto",
+  "generatedAssetBase": "/pet/utto/slow",
+  "slowFactor": 1.9,
+  "storageKeys": {
+    "position": "utto-pet-position-v2",
+    "collapsed": "utto-pet-collapsed"
+  },
+  "baseStates": ["idle", "reading", "exploring", "fatalError"],
+  "inactiveStates": ["bored", "break", "sleep"],
+  "idleStages": [
+    [90000, "bored"],
+    [210000, "break"],
+    [420000, "sleep"]
+  ],
+  "states": {
+    "idle": {
+      "file": "idle.gif",
+      "label": "一起学习吧",
+      "generateSlow": true
+    },
+    "reading": {
+      "file": "reading.gif",
+      "label": "认真看一会儿",
+      "generateSlow": true
+    },
+    "exploring": {
+      "file": "exploring.gif",
+      "label": "去看看别的内容",
+      "generateSlow": true
+    },
+    "bored": {
+      "file": "bored.gif",
+      "label": "发会儿呆",
+      "generateSlow": true
+    },
+    "break": {
+      "file": "break.gif",
+      "label": "喝口水再继续",
+      "generateSlow": true
+    },
+    "sleep": {
+      "file": "sleep.gif",
+      "label": "先眯一会儿",
+      "generateSlow": true
+    },
+    "interact": {
+      "file": "interact.gif",
+      "label": "嗨，我在呢",
+      "generateSlow": true
+    },
+    "annoyed": {
+      "file": "annoyed.gif",
+      "label": "轻一点戳我",
+      "generateSlow": true
+    },
+    "success": {
+      "file": "success.gif",
+      "label": "这篇读完啦",
+      "generateSlow": true
+    },
+    "fatalError": {
+      "file": "fatal-error.webp",
+      "fallbackFile": "fatal-error.png",
+      "label": "这里好像走丢了",
+      "generateSlow": false
+    }
+  }
+}

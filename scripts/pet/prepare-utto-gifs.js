@@ -1,0 +1,95 @@
+const fs = require('node:fs/promises')
+const path = require('node:path')
+const sharp = require('sharp')
+
+const PROJECT_ROOT = process.cwd()
+const MANIFEST_PATH = path.resolve(
+  PROJECT_ROOT,
+  'components',
+  'pet',
+  'utto',
+  'pet.manifest.json'
+)
+const manifest = require(MANIFEST_PATH)
+const SOURCE_DIR = path.resolve(
+  PROJECT_ROOT,
+  'public',
+  manifest.assetBase.replace(/^\//, '')
+)
+const OUTPUT_DIR = path.resolve(
+  PROJECT_ROOT,
+  'public',
+  manifest.generatedAssetBase.replace(/^\//, '')
+)
+const SPEED_FACTOR = Number(manifest.slowFactor || 1)
+const GIF_NAMES = Object.values(manifest.states)
+  .filter(state => state.generateSlow && state.file?.toLowerCase().endsWith('.gif'))
+  .map(state => state.file)
+
+function normalizeDelays(metadata) {
+  const pageCount = Math.max(metadata.pages || 1, 1)
+  const sourceDelays =
+    Array.isArray(metadata.delay) && metadata.delay.length
+      ? metadata.delay
+      : new Array(pageCount).fill(100)
+
+  return Array.from({ length: pageCount }, (_, index) => {
+    const sourceDelay = sourceDelays[index] || sourceDelays.at(-1) || 100
+    return Math.min(
+      1200,
+      Math.max(100, Math.round(sourceDelay * SPEED_FACTOR))
+    )
+  })
+}
+
+async function shouldSkip(sourcePath, outputPath) {
+  try {
+    const [sourceStat, outputStat] = await Promise.all([
+      fs.stat(sourcePath),
+      fs.stat(outputPath)
+    ])
+    return outputStat.mtimeMs >= sourceStat.mtimeMs
+  } catch {
+    return false
+  }
+}
+
+async function prepareGif(name) {
+  const sourcePath = path.join(SOURCE_DIR, name)
+  const outputPath = path.join(OUTPUT_DIR, name)
+  const temporaryPath = `${outputPath}.tmp`
+
+  if (await shouldSkip(sourcePath, outputPath)) return
+
+  try {
+    const metadata = await sharp(sourcePath, { animated: true }).metadata()
+    const delay = normalizeDelays(metadata)
+
+    await sharp(sourcePath, { animated: true })
+      .gif({
+        delay,
+        loop: Number.isInteger(metadata.loop) ? metadata.loop : 0
+      })
+      .toFile(temporaryPath)
+
+    await fs.rename(temporaryPath, outputPath)
+    console.log(`[UttoPet] Prepared slower GIF: ${name}`)
+  } catch (error) {
+    await fs.rm(temporaryPath, { force: true })
+    await fs.copyFile(sourcePath, outputPath)
+    console.warn(
+      `[UttoPet] Could not slow ${name}; copied the original instead:`,
+      error?.message || error
+    )
+  }
+}
+
+async function main() {
+  await fs.mkdir(OUTPUT_DIR, { recursive: true })
+  await Promise.all(GIF_NAMES.map(prepareGif))
+}
+
+main().catch(error => {
+  console.error('[UttoPet] Failed to prepare GIF assets:', error)
+  process.exitCode = 1
+})

@@ -5,6 +5,7 @@ const ORIGINAL_ASSET_BASE = '/pet/utto'
 const SLOW_ASSET_BASE = `${ORIGINAL_ASSET_BASE}/slow`
 const POSITION_STORAGE_KEY = 'utto-pet-position-v2'
 const COLLAPSED_STORAGE_KEY = 'utto-pet-collapsed'
+const VISUAL_TRANSITION_MS = 240
 
 const PET_STATES = {
   idle: {
@@ -67,6 +68,9 @@ const IDLE_STAGES = [
   [420000, 'sleep']
 ]
 
+const retainedAssets = new Map()
+const assetPromises = new Map()
+
 const normalizePath = value => {
   const rawPath = String(value || '/').split('?')[0].split('#')[0]
   return rawPath || '/'
@@ -80,9 +84,8 @@ const getContentType = pageProps =>
       ''
   ).toLowerCase()
 
-const getRouteState = ({ asPath, pathname, pageProps }) => {
+const getRouteState = ({ asPath, pathname, contentType, hasPostTitle }) => {
   const path = normalizePath(asPath)
-  const contentType = getContentType(pageProps)
 
   if (pathname === '/404' || path === '/404') return 'fatalError'
   if (path === '/') return 'idle'
@@ -100,9 +103,7 @@ const getRouteState = ({ asPath, pathname, pageProps }) => {
     return 'idle'
   }
 
-  // 动态文章页通常会带 post 数据；无法判断时保持安静的待机状态，
-  // 避免把关于页或自定义页面误判成“阅读中”。
-  return pageProps?.post?.title ? 'reading' : 'idle'
+  return hasPostTitle ? 'reading' : 'idle'
 }
 
 const getPetSize = () => (window.innerWidth <= 768 ? 84 : 112)
@@ -130,10 +131,52 @@ const getDefaultPosition = () => {
   })
 }
 
+const loadImage = src =>
+  new Promise((resolve, reject) => {
+    const image = new window.Image()
+    image.decoding = 'async'
+    image.onload = async () => {
+      try {
+        await image.decode?.()
+      } catch {}
+      resolve({ image, src })
+    }
+    image.onerror = reject
+    image.src = src
+  })
+
+const preparePetAsset = stateName => {
+  const state = PET_STATES[stateName] || PET_STATES.idle
+  if (typeof window === 'undefined') return Promise.resolve(state.src)
+
+  if (retainedAssets.has(stateName)) {
+    return Promise.resolve(retainedAssets.get(stateName).src)
+  }
+
+  if (assetPromises.has(stateName)) {
+    return assetPromises.get(stateName)
+  }
+
+  const promise = loadImage(state.src)
+    .catch(() => loadImage(state.fallbackSrc))
+    .then(asset => {
+      retainedAssets.set(stateName, asset)
+      assetPromises.delete(stateName)
+      return asset.src
+    })
+    .catch(() => {
+      assetPromises.delete(stateName)
+      return state.fallbackSrc
+    })
+
+  assetPromises.set(stateName, promise)
+  return promise
+}
+
 /**
  * Claude 主题全站灵宠。
- * 页面状态、停留时间、互动、阅读进度和拖动位置均独立管理，
- * 避免鼠标移动或滚动时频繁重置 GIF。
+ * GIF 会先完成首帧解码再切换，并在短暂交叉淡入期间保留旧状态；
+ * 拖动位移直接写入 DOM，每帧最多更新一次，避免连续 React 重渲染。
  */
 export default function UttoPet({ enabled = true, pageProps = {} }) {
   const router = useRouter()
@@ -142,7 +185,13 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
   const [position, setPosition] = useState(null)
   const [viewportWidth, setViewportWidth] = useState(0)
   const [dragging, setDragging] = useState(false)
+  const [visual, setVisual] = useState({
+    name: 'idle',
+    src: PET_STATES.idle.src
+  })
+  const [outgoingVisual, setOutgoingVisual] = useState(null)
 
+  const petElementRef = useRef(null)
   const stateNameRef = useRef('idle')
   const positionRef = useRef(null)
   const baseStateRef = useRef('idle')
@@ -152,17 +201,47 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
   const successPlayedRef = useRef(false)
   const clickTimesRef = useRef([])
   const dragRef = useRef(null)
+  const dragFrameRef = useRef(0)
   const lastActivityRef = useRef(0)
+  const visualRef = useRef({
+    name: 'idle',
+    src: PET_STATES.idle.src
+  })
+  const visualRequestRef = useRef(0)
+  const visualTransitionTimerRef = useRef(null)
+
+  const contentType = getContentType(pageProps)
+  const hasPostTitle = Boolean(pageProps?.post?.title)
+  const routeState = useMemo(
+    () =>
+      getRouteState({
+        asPath: router.asPath,
+        pathname: router.pathname,
+        contentType,
+        hasPostTitle
+      }),
+    [contentType, hasPostTitle, router.asPath, router.pathname]
+  )
 
   const setPetState = useCallback(nextState => {
-    stateNameRef.current = nextState
-    setStateName(nextState)
+    const normalizedState = PET_STATES[nextState] ? nextState : 'idle'
+    if (stateNameRef.current === normalizedState) return
+    stateNameRef.current = normalizedState
+    setStateName(normalizedState)
   }, [])
 
-  const updatePosition = useCallback(nextPosition => {
+  const applyPosition = useCallback((nextPosition, commit = false) => {
     const clamped = clampPosition(nextPosition)
     positionRef.current = clamped
-    setPosition(clamped)
+
+    const petElement = petElementRef.current
+    if (petElement) {
+      petElement.style.transform = `translate3d(${clamped.x}px, ${clamped.y}px, 0)`
+      petElement.dataset.side =
+        clamped.x + getPetSize() / 2 > window.innerWidth / 2 ? 'left' : 'right'
+    }
+
+    if (commit) setPosition(clamped)
     return clamped
   }, [])
 
@@ -255,34 +334,72 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
         initialPosition = clampPosition(storedPosition)
       }
     } catch {}
-    updatePosition(initialPosition)
+    applyPosition(initialPosition, true)
 
-    Object.values(PET_STATES).forEach(({ src, fallbackSrc }) => {
-      const image = new window.Image()
-      image.src = src
-      const fallbackImage = new window.Image()
-      fallbackImage.src = fallbackSrc
+    const priorityStates = ['idle', 'reading', 'exploring', 'interact', 'annoyed']
+    priorityStates.forEach(preparePetAsset)
+
+    const preloadRemaining = () => {
+      Object.keys(PET_STATES)
+        .filter(name => !priorityStates.includes(name))
+        .forEach(preparePetAsset)
+    }
+
+    const idleCallbackId = window.requestIdleCallback?.(preloadRemaining, {
+      timeout: 1800
     })
+    const preloadTimer = window.requestIdleCallback
+      ? null
+      : window.setTimeout(preloadRemaining, 500)
 
     const handleResize = () => {
       setViewportWidth(window.innerWidth)
-      updatePosition(positionRef.current || getDefaultPosition())
+      applyPosition(positionRef.current || getDefaultPosition(), true)
     }
     window.addEventListener('resize', handleResize)
 
-    return () => window.removeEventListener('resize', handleResize)
-  }, [enabled, updatePosition])
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (idleCallbackId) window.cancelIdleCallback?.(idleCallbackId)
+      if (preloadTimer) window.clearTimeout(preloadTimer)
+    }
+  }, [applyPosition, enabled])
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return undefined
+    if (stateName === visualRef.current.name) return undefined
+
+    const requestId = ++visualRequestRef.current
+    let cancelled = false
+
+    preparePetAsset(stateName).then(src => {
+      if (cancelled || requestId !== visualRequestRef.current) return
+
+      const previousVisual = visualRef.current
+      const nextVisual = { name: stateName, src }
+
+      setOutgoingVisual(previousVisual)
+      visualRef.current = nextVisual
+      setVisual(nextVisual)
+
+      if (visualTransitionTimerRef.current) {
+        window.clearTimeout(visualTransitionTimerRef.current)
+      }
+      visualTransitionTimerRef.current = window.setTimeout(() => {
+        setOutgoingVisual(null)
+        visualTransitionTimerRef.current = null
+      }, VISUAL_TRANSITION_MS + 40)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [enabled, stateName])
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return undefined
 
-    const nextBaseState = getRouteState({
-      asPath: router.asPath,
-      pathname: router.pathname,
-      pageProps
-    })
-
-    baseStateRef.current = nextBaseState
+    baseStateRef.current = routeState
     successPlayedRef.current = false
     transientRef.current = false
     clickTimesRef.current = []
@@ -293,14 +410,12 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
       transientTimerRef.current = null
     }
 
-    setPetState(nextBaseState)
+    setPetState(routeState)
     scheduleIdleStates()
   }, [
     clearIdleTimers,
     enabled,
-    pageProps,
-    router.asPath,
-    router.pathname,
+    routeState,
     scheduleIdleStates,
     setPetState
   ])
@@ -374,6 +489,14 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
         window.clearTimeout(transientTimerRef.current)
         transientTimerRef.current = null
       }
+      if (visualTransitionTimerRef.current) {
+        window.clearTimeout(visualTransitionTimerRef.current)
+        visualTransitionTimerRef.current = null
+      }
+      if (dragFrameRef.current) {
+        window.cancelAnimationFrame(dragFrameRef.current)
+        dragFrameRef.current = 0
+      }
     }
   }, [clearIdleTimers, enabled, scheduleIdleStates])
 
@@ -413,7 +536,8 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
       startY: event.clientY,
       originX: currentPosition.x,
       originY: currentPosition.y,
-      moved: false
+      moved: false,
+      pendingPosition: currentPosition
     }
     event.currentTarget.setPointerCapture?.(event.pointerId)
   }
@@ -430,10 +554,22 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
       clearIdleTimers()
     }
 
-    if (drag.moved) {
-      event.preventDefault()
-      updatePosition({ x: drag.originX + dx, y: drag.originY + dy })
+    if (!drag.moved) return
+
+    event.preventDefault()
+    drag.pendingPosition = {
+      x: drag.originX + dx,
+      y: drag.originY + dy
     }
+
+    if (dragFrameRef.current) return
+    dragFrameRef.current = window.requestAnimationFrame(() => {
+      dragFrameRef.current = 0
+      const activeDrag = dragRef.current
+      if (activeDrag?.pendingPosition) {
+        applyPosition(activeDrag.pendingPosition)
+      }
+    })
   }
 
   const finishPointer = event => {
@@ -444,11 +580,21 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
       event.currentTarget.releasePointerCapture?.(event.pointerId)
     } catch {}
 
+    if (dragFrameRef.current) {
+      window.cancelAnimationFrame(dragFrameRef.current)
+      dragFrameRef.current = 0
+    }
+
+    if (drag.moved && drag.pendingPosition) {
+      applyPosition(drag.pendingPosition)
+    }
+
     dragRef.current = null
     setDragging(false)
 
     if (drag.moved) {
       const finalPosition = positionRef.current || getDefaultPosition()
+      setPosition(finalPosition)
       window.localStorage.setItem(
         POSITION_STORAGE_KEY,
         JSON.stringify(finalPosition)
@@ -463,8 +609,15 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
   const cancelPointer = event => {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
+
+    if (dragFrameRef.current) {
+      window.cancelAnimationFrame(dragFrameRef.current)
+      dragFrameRef.current = 0
+    }
+
     dragRef.current = null
     setDragging(false)
+    setPosition(positionRef.current || getDefaultPosition())
     recordActivity(true)
   }
 
@@ -479,14 +632,19 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
     setCollapsed(false)
     setPetState(baseStateRef.current)
     window.localStorage.setItem(COLLAPSED_STORAGE_KEY, 'false')
-    window.setTimeout(() => recordActivity(true), 0)
+    window.setTimeout(() => {
+      applyPosition(positionRef.current || getDefaultPosition(), true)
+      recordActivity(true)
+    }, 0)
   }
 
-  const handleImageError = event => {
+  const handleImageError = (event, visualStateName) => {
     const image = event.currentTarget
+    const fallbackSrc =
+      PET_STATES[visualStateName]?.fallbackSrc || PET_STATES.idle.fallbackSrc
     if (image.dataset.usedFallback === 'true') return
     image.dataset.usedFallback = 'true'
-    image.src = state.fallbackSrc
+    image.src = fallbackSrc
   }
 
   if (collapsed) {
@@ -508,6 +666,7 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
   return (
     <>
       <aside
+        ref={petElementRef}
         className={`utto-pet ${isSpeaking ? 'utto-pet--speaking' : ''} ${
           dragging ? 'utto-pet--dragging' : ''
         }`}
@@ -534,14 +693,28 @@ export default function UttoPet({ enabled = true, pageProps = {} }) {
           onPointerCancel={cancelPointer}
           aria-label={`utto 灵宠：${state.label}`}
           title='拖动可以移动，点一下可以互动'>
-          <img
-            key={stateName}
-            className='utto-pet__image'
-            src={state.src}
-            alt=''
-            draggable='false'
-            onError={handleImageError}
-          />
+          <span className='utto-pet__visual' aria-hidden='true'>
+            {outgoingVisual && (
+              <img
+                key={`outgoing-${outgoingVisual.name}-${outgoingVisual.src}`}
+                className='utto-pet__image utto-pet__image--outgoing'
+                src={outgoingVisual.src}
+                alt=''
+                draggable='false'
+                onError={event =>
+                  handleImageError(event, outgoingVisual.name)
+                }
+              />
+            )}
+            <img
+              key={`current-${visual.name}-${visual.src}`}
+              className='utto-pet__image utto-pet__image--current'
+              src={visual.src}
+              alt=''
+              draggable='false'
+              onError={event => handleImageError(event, visual.name)}
+            />
+          </span>
         </button>
 
         <button
@@ -571,7 +744,10 @@ function PetStyles() {
         pointer-events: none;
         user-select: none;
         -webkit-user-select: none;
+        contain: layout style paint;
         will-change: transform;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
       }
 
       .utto-pet__button {
@@ -603,25 +779,50 @@ function PetStyles() {
         outline-offset: 3px;
       }
 
+      .utto-pet__visual {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        filter: drop-shadow(0 8px 14px rgba(76, 48, 34, 0.14));
+        transform: translateZ(0);
+        transition:
+          transform 180ms ease,
+          filter 180ms ease;
+        will-change: transform, filter;
+      }
+
       .utto-pet__image {
+        position: absolute;
+        inset: 0;
         display: block;
         width: 100%;
         height: 100%;
         object-fit: contain;
         pointer-events: none;
-        filter: drop-shadow(0 8px 14px rgba(76, 48, 34, 0.14));
-        animation: utto-pet-state-in 260ms ease-out both;
-        transition:
-          transform 180ms ease,
-          filter 180ms ease;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        will-change: opacity, transform;
       }
 
-      .utto-pet__button:hover .utto-pet__image {
+      .utto-pet__image--current {
+        z-index: 2;
+        animation: utto-pet-state-in ${VISUAL_TRANSITION_MS}ms
+          cubic-bezier(0.22, 0.8, 0.28, 1) both;
+      }
+
+      .utto-pet__image--outgoing {
+        z-index: 1;
+        animation: utto-pet-state-out ${VISUAL_TRANSITION_MS}ms ease-out both;
+      }
+
+      .utto-pet__button:hover .utto-pet__visual {
         transform: translateY(-2px) scale(1.035);
         filter: drop-shadow(0 10px 18px rgba(76, 48, 34, 0.2));
       }
 
-      .utto-pet__button:active .utto-pet__image {
+      .utto-pet__button:active .utto-pet__visual {
         transform: scale(0.96);
       }
 
@@ -671,7 +872,7 @@ function PetStyles() {
         position: absolute;
         top: 1px;
         right: 1px;
-        z-index: 2;
+        z-index: 3;
         width: 22px;
         height: 22px;
         padding: 0 0 2px;
@@ -746,12 +947,23 @@ function PetStyles() {
 
       @keyframes utto-pet-state-in {
         from {
-          opacity: 0.45;
-          transform: scale(0.96);
+          opacity: 0;
+          transform: scale(0.985);
         }
         to {
           opacity: 1;
           transform: scale(1);
+        }
+      }
+
+      @keyframes utto-pet-state-out {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(1.015);
         }
       }
 
@@ -807,6 +1019,11 @@ function PetStyles() {
           animation: none !important;
         }
 
+        .utto-pet__image--outgoing {
+          opacity: 0;
+        }
+
+        .utto-pet__visual,
         .utto-pet__image,
         .utto-pet__bubble,
         .utto-pet__close {

@@ -4,39 +4,18 @@ import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import Head from 'next/head'
 
 const Rabbit404Illustration = () => (
-  <svg
-    viewBox='0 0 320 260'
-    role='img'
-    aria-label='困惑迷路的 utto 兔子'
-    className='h-auto w-full overflow-visible'>
-    <g
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='7'
-      strokeLinecap='round'
-      strokeLinejoin='round'>
-      {/* 一体式兔子轮廓：只有头和耳朵，不再使用容易交叉错乱的手臂路径 */}
-      <path d='M110 74 C102 48 104 20 120 14 C137 8 148 30 146 66 C155 63 165 63 174 66 C172 30 183 8 200 14 C216 20 218 48 210 74 C246 87 268 116 268 151 C268 199 225 226 160 226 C95 226 52 199 52 151 C52 116 74 87 110 74 Z' />
-
-      {/* 困惑表情 */}
-      <circle cx='112' cy='145' r='8' fill='currentColor' stroke='none' />
-      <circle cx='206' cy='145' r='8' fill='currentColor' stroke='none' />
-      <path d='M96 122 Q112 112 127 121' />
-      <path d='M193 121 Q207 108 221 120' />
-      <ellipse cx='148' cy='174' rx='14' ry='18' />
-      <ellipse cx='172' cy='174' rx='14' ry='18' />
-      <path d='M152 198 Q160 205 168 198' />
-
-      {/* 两侧问号 */}
-      <path d='M37 91 Q29 75 40 64 Q52 52 65 64 Q77 76 66 89 L58 96' />
-      <circle cx='56' cy='111' r='4' fill='currentColor' stroke='none' />
-      <path d='M263 85 Q271 72 283 79 Q296 87 288 99 L280 106' />
-      <circle cx='278' cy='120' r='4' fill='currentColor' stroke='none' />
-    </g>
-
-    <circle cx='91' cy='177' r='18' fill='#f6c7dc' opacity='0.86' />
-    <circle cx='229' cy='177' r='18' fill='#f6c7dc' opacity='0.86' />
-  </svg>
+  <div className='relative mx-auto flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[36px] border border-[#dcc9b8]/70 bg-[#f8f1e8]/85 shadow-[0_18px_50px_rgba(98,72,50,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#2b2723]/80 dark:shadow-[0_18px_55px_rgba(0,0,0,0.28)]'>
+    <div className='absolute inset-x-10 bottom-7 h-12 rounded-full bg-[#d9b99a]/25 blur-xl dark:bg-[#d7b28e]/15' />
+    <picture className='relative z-10 block h-[86%] w-[86%]'>
+      <source srcSet='/pet/utto/fatal-error.webp' type='image/webp' />
+      <img
+        src='/pet/utto/fatal-error.png'
+        alt='迷路的 utto 兔子'
+        className='h-full w-full object-contain drop-shadow-[0_12px_16px_rgba(87,61,42,0.16)]'
+        draggable='false'
+      />
+    </picture>
+  </div>
 )
 
 const NotFoundPage = () => {
@@ -55,15 +34,18 @@ const NotFoundPage = () => {
       </Head>
 
       <section className='mx-auto flex min-h-[calc(100vh-12rem)] w-full max-w-2xl flex-col items-center justify-center px-4 py-8 text-center md:py-12'>
-        <div className='mb-3 w-full max-w-[300px] text-[#654729] dark:text-[#d8b58a]'>
+        <div className='mb-5 w-full'>
           <Rabbit404Illustration />
         </div>
 
         <h1 className='mb-2 text-6xl font-semibold tracking-tight text-gray-900 dark:text-white md:text-7xl'>
           404
         </h1>
-        <p className='mb-7 text-base text-gray-600 dark:text-gray-300 md:text-lg'>
-          utto兔子没有找到你要的页面
+        <p className='mb-2 text-base font-medium text-[#6b4f3b] dark:text-[#e7cdb6] md:text-lg'>
+          utto兔子好像走错路了
+        </p>
+        <p className='mb-7 text-sm text-gray-500 dark:text-gray-400'>
+          这个页面不存在，或者已经被移动到别处。
         </p>
 
         <nav
@@ -73,7 +55,7 @@ const NotFoundPage = () => {
             <SmartLink
               key={link.href}
               href={link.href}
-              className='inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition duration-200 hover:-translate-y-0.5 hover:border-gray-400 hover:shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-500'>
+              className='inline-flex items-center rounded-xl border border-[#d8c7b7] bg-white/80 px-4 py-2 text-sm font-medium text-[#654b38] shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#b99575] hover:bg-[#fffaf5] hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:text-[#ead8c8] dark:hover:border-white/20 dark:hover:bg-white/10'>
               <i className={`fas ${link.icon} mr-2 text-xs`} />
               {link.label}
             </SmartLink>

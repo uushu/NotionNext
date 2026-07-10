@@ -2,20 +2,29 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 const sharp = require('sharp')
 
-const SOURCE_DIR = path.resolve(process.cwd(), 'public', 'pet', 'utto')
-const OUTPUT_DIR = path.join(SOURCE_DIR, 'slow')
-const SPEED_FACTOR = 1.9
-const GIF_NAMES = [
-  'idle.gif',
-  'reading.gif',
-  'exploring.gif',
-  'bored.gif',
-  'break.gif',
-  'sleep.gif',
-  'interact.gif',
-  'annoyed.gif',
-  'success.gif'
-]
+const PROJECT_ROOT = process.cwd()
+const MANIFEST_PATH = path.resolve(
+  PROJECT_ROOT,
+  'components',
+  'pet',
+  'utto',
+  'pet.manifest.json'
+)
+const manifest = require(MANIFEST_PATH)
+const SOURCE_DIR = path.resolve(
+  PROJECT_ROOT,
+  'public',
+  manifest.assetBase.replace(/^\//, '')
+)
+const OUTPUT_DIR = path.resolve(
+  PROJECT_ROOT,
+  'public',
+  manifest.generatedAssetBase.replace(/^\//, '')
+)
+const SPEED_FACTOR = Number(manifest.slowFactor || 1)
+const GIF_NAMES = Object.values(manifest.states)
+  .filter(state => state.generateSlow && state.file?.toLowerCase().endsWith('.gif'))
+  .map(state => state.file)
 
 function normalizeDelays(metadata) {
   const pageCount = Math.max(metadata.pages || 1, 1)

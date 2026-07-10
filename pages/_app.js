@@ -21,7 +21,9 @@ import BLOG from '@/blog.config'
 import { LayoutBase as ClaudeLayoutBase } from '@/themes/claude'
 import ClickGlassRipple from '@/components/ClickGlassRipple'
 import ExternalPlugins from '@/components/ExternalPlugins'
-import ReadmeTypewriter from '@/components/ReadmeTypewriter'
+import ReadmeTypewriter, {
+  prepareReadmeTypewriterHtml
+} from '@/components/ReadmeTypewriter'
 import SEO from '@/components/SEO'
 import UttoPet from '@/components/UttoPet'
 import { zhCN } from '@clerk/localizations'
@@ -54,6 +56,20 @@ const MyApp = ({ Component, pageProps }) => {
   const theme = useMemo(() => {
     return queryTheme || notionTheme || configTheme
   }, [queryTheme, notionTheme, configTheme])
+  const isClaudeTheme = theme?.split(',')[0]?.trim() === 'claude'
+
+  const renderPageProps = useMemo(() => {
+    const readmeHtml = pageProps?.readmePage?.readmeHtml
+    if (!isClaudeTheme || !readmeHtml) return pageProps
+
+    return {
+      ...pageProps,
+      readmePage: {
+        ...pageProps.readmePage,
+        readmeHtml: prepareReadmeTypewriterHtml(readmeHtml)
+      }
+    }
+  }, [isClaudeTheme, pageProps])
 
   useEffect(() => {
     const source = queryTheme
@@ -82,32 +98,28 @@ const MyApp = ({ Component, pageProps }) => {
   const GLayout = useCallback(
     props => {
       // Claude 是当前生产主题，直接打进首屏包，避免等待动态主题模块。
-      if (theme?.split(',')[0]?.trim() === 'claude') {
+      if (isClaudeTheme) {
         return <ClaudeLayoutBase {...props} />
       }
 
       const Layout = getBaseLayoutByTheme(theme)
       return <Layout {...props} />
     },
-    [theme]
+    [isClaudeTheme, theme]
   )
 
   const enableClerk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   const content = (
     <AppErrorBoundary>
-      <GlobalContextProvider {...pageProps}>
-        <GLayout {...pageProps}>
-          <SEO {...pageProps} />
-          <Component {...pageProps} />
+      <GlobalContextProvider {...renderPageProps}>
+        <GLayout {...renderPageProps}>
+          <SEO {...renderPageProps} />
+          <Component {...renderPageProps} />
         </GLayout>
-        {/* Keep the proven isolated-title implementation for this preview. */}
-        <ReadmeTypewriter
-          enabled={theme === 'claude'}
-          readmeHtml={pageProps?.readmePage?.readmeHtml}
-        />
-        <ClickGlassRipple enabled={theme === 'claude'} />
-        <UttoPet enabled={theme === 'claude'} pageProps={pageProps} />
-        <ExternalPlugins {...pageProps} />
+        <ReadmeTypewriter enabled={isClaudeTheme} />
+        <ClickGlassRipple enabled={isClaudeTheme} />
+        <UttoPet enabled={isClaudeTheme} pageProps={renderPageProps} />
+        <ExternalPlugins {...renderPageProps} />
       </GlobalContextProvider>
     </AppErrorBoundary>
   )

@@ -100,7 +100,10 @@ const MyApp = ({ Component, pageProps }) => {
           <SEO {...pageProps} />
           <Component {...pageProps} />
         </GLayout>
-        <ReadmeTypewriter enabled={theme === 'claude'} />
+        <ReadmeTypewriter
+          enabled={theme === 'claude'}
+          readmeHtml={pageProps?.readmePage?.readmeHtml}
+        />
         <ClickGlassRipple enabled={theme === 'claude'} />
         <UttoPet enabled={theme === 'claude'} pageProps={pageProps} />
         <ExternalPlugins {...pageProps} />

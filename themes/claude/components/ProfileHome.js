@@ -617,6 +617,7 @@ export default function ProfileHome(props) {
           {readmeHtml ? (
             <div
               className='markdown-body'
+              suppressHydrationWarning
               dangerouslySetInnerHTML={{ __html: readmeHtml }}
             />
           ) : (

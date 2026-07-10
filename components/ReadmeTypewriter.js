@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 
 const CURSOR_FINISH_DURATION = 2400
 
@@ -75,214 +75,228 @@ const parseReadmeBlocks = html => {
   return blocks.sort((a, b) => a.index - b.index)
 }
 
-const splitGraphemes = text => {
-  if (
-    typeof Intl !== 'undefined' &&
-    typeof Intl.Segmenter === 'function'
-  ) {
-    const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
-    return Array.from(segmenter.segment(text), segment => segment.segment)
+const serializeBlocks = blocks => {
+  return JSON.stringify(blocks)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
+const createBootstrapScript = blocks => `
+;(function () {
+  var blocks = ${serializeBlocks(blocks)}
+  var finishDuration = ${CURSOR_FINISH_DURATION}
+
+  var splitGraphemes = function (text) {
+    if (window.Intl && typeof window.Intl.Segmenter === 'function') {
+      var segmenter = new window.Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
+      return Array.from(segmenter.segment(text), function (segment) {
+        return segment.segment
+      })
+    }
+    return Array.from(text)
   }
 
-  return Array.from(text)
-}
+  var getDelay = function (character) {
+    if (/[。！？!?]/.test(character)) return 220
+    if (/[，、：；,;:]/.test(character)) return 140
+    if (/[…—]/.test(character)) return 170
+    if (/\\s/.test(character)) return 35
+    return 55 + Math.round(Math.random() * 30)
+  }
 
-const getCharacterDelay = character => {
-  if (/[。！？!?]/.test(character)) return 220
-  if (/[，、：；,;:]/.test(character)) return 140
-  if (/[…—]/.test(character)) return 170
-  if (/\s/.test(character)) return 35
-  return 55 + Math.round(Math.random() * 30)
-}
-
-const AnimatedBlock = ({ block, visibleText, showCursor, isFinished }) => {
-  const Tag = block.tag
-
-  return (
-    <Tag className={`${block.className} claude-readme-animated-block`}>
-      <span className='claude-readme-block-grid'>
-        <span className='claude-readme-block-placeholder' aria-hidden='true'>
-          {block.text}
-        </span>
-        <span className='claude-readme-block-visible' aria-hidden='true'>
-          {visibleText}
-          {showCursor && (
-            <span
-              className={`claude-readme-block-cursor ${
-                isFinished ? 'is-finished' : ''
-              }`}
-            />
-          )}
-        </span>
-      </span>
-    </Tag>
-  )
-}
-
-/**
- * README 全文打字动画。
- *
- * readmeHtml 在 React 渲染前被解析成独立文本块。首个字符直接进入服务端 HTML，
- * 后续字符在客户端连续播放，不查询、不清空、不克隆 Notion DOM。
- */
-export default function ReadmeTypewriter({ html = '', enabled = true }) {
-  const blocks = useMemo(() => parseReadmeBlocks(html), [html])
-  const graphemes = useMemo(
-    () => blocks.map(block => splitGraphemes(block.text)),
-    [blocks]
-  )
-  const [position, setPosition] = useState({ blockIndex: 0, characterCount: 1 })
-  const [status, setStatus] = useState('typing')
-
-  useEffect(() => {
-    if (!enabled || !blocks.length) return undefined
-
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      setStatus('done')
-      return undefined
+  var start = function (nextBlocks) {
+    if (window.location.pathname !== '/') return
+    if (!nextBlocks || !nextBlocks.length) return
+    if (
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return
     }
 
-    let blockIndex = 0
-    let characterCount = 1
-    let typeTimer
-    let finishTimer
-    let cancelled = false
+    var card = document.querySelector('#theme-claude .claude-readme-card')
+    var original = card && card.querySelector(':scope > .markdown-body')
+    if (!card || !original) return
+    if (card.dataset.claudeReadmePreparsedStarted === 'true') return
 
-    setPosition({ blockIndex, characterCount })
-    setStatus('typing')
+    card.dataset.claudeReadmePreparsedStarted = 'true'
 
-    const typeNext = () => {
-      if (cancelled) return
+    var shell = document.createElement('div')
+    shell.className = 'claude-readme-typewriter-shell'
+    original.parentNode.insertBefore(shell, original)
+    shell.appendChild(original)
 
-      const currentCharacters = graphemes[blockIndex] || []
+    original.classList.add('claude-readme-typewriter-original')
+    original.style.visibility = 'hidden'
+    original.style.pointerEvents = 'none'
+    original.setAttribute('aria-hidden', 'true')
 
-      if (characterCount < currentCharacters.length) {
-        const previousCharacter = currentCharacters[characterCount - 1] || ''
+    var animation = document.createElement('div')
+    animation.className = 'markdown-body claude-readme-animation-surface'
+    animation.setAttribute('aria-hidden', 'true')
+
+    var notionRoot = document.createElement('div')
+    notionRoot.className = 'claude-readme-notion'
+    var main = document.createElement('main')
+    main.className = 'notion light-mode notion-page'
+    notionRoot.appendChild(main)
+    animation.appendChild(notionRoot)
+    shell.appendChild(animation)
+
+    var cursor = document.createElement('span')
+    cursor.className = 'claude-readme-block-cursor'
+    cursor.setAttribute('aria-hidden', 'true')
+
+    var blockStates = nextBlocks.map(function (block, index) {
+      var element = document.createElement(block.tag)
+      element.className = block.className + ' claude-readme-animated-block'
+
+      var grid = document.createElement('span')
+      grid.className = 'claude-readme-block-grid'
+
+      var placeholder = document.createElement('span')
+      placeholder.className = 'claude-readme-block-placeholder'
+      placeholder.setAttribute('aria-hidden', 'true')
+      placeholder.textContent = block.text
+
+      var visible = document.createElement('span')
+      visible.className = 'claude-readme-block-visible'
+      visible.setAttribute('aria-hidden', 'true')
+
+      var characters = splitGraphemes(block.text)
+      if (index === 0 && characters.length) {
+        visible.textContent = characters[0]
+      }
+
+      grid.appendChild(placeholder)
+      grid.appendChild(visible)
+      element.appendChild(grid)
+      main.appendChild(element)
+
+      return {
+        characters: characters,
+        visible: visible
+      }
+    })
+
+    if (!blockStates.length || !blockStates[0].characters.length) {
+      animation.remove()
+      original.style.visibility = ''
+      original.style.pointerEvents = ''
+      original.removeAttribute('aria-hidden')
+      return
+    }
+
+    var blockIndex = 0
+    var characterCount = 1
+    var timer
+    var finishTimer
+
+    blockStates[0].visible.appendChild(cursor)
+
+    var finish = function () {
+      cursor.classList.add('is-finished')
+      finishTimer = window.setTimeout(function () {
+        if (!card.isConnected) return
+        cursor.remove()
+        animation.style.visibility = 'hidden'
+        original.style.visibility = ''
+        original.style.pointerEvents = ''
+        original.removeAttribute('aria-hidden')
+        shell.classList.add('is-done')
+      }, finishDuration)
+    }
+
+    var typeNext = function () {
+      if (!card.isConnected) {
+        window.clearTimeout(timer)
+        window.clearTimeout(finishTimer)
+        return
+      }
+
+      var state = blockStates[blockIndex]
+      var characters = state.characters
+
+      if (characterCount < characters.length) {
+        var previousCharacter = characters[characterCount - 1] || ''
         characterCount += 1
-        setPosition({ blockIndex, characterCount })
-        typeTimer = window.setTimeout(
-          typeNext,
-          getCharacterDelay(previousCharacter)
-        )
+        state.visible.textContent = characters.slice(0, characterCount).join('')
+        state.visible.appendChild(cursor)
+        timer = window.setTimeout(typeNext, getDelay(previousCharacter))
         return
       }
 
-      if (blockIndex < graphemes.length - 1) {
-        const previousCharacter = currentCharacters[currentCharacters.length - 1] || ''
+      if (blockIndex < blockStates.length - 1) {
+        var lastCharacter = characters[characters.length - 1] || ''
         blockIndex += 1
-        characterCount = Math.min(1, graphemes[blockIndex]?.length || 0)
-        setPosition({ blockIndex, characterCount })
-        typeTimer = window.setTimeout(
-          typeNext,
-          getCharacterDelay(previousCharacter)
-        )
+        state = blockStates[blockIndex]
+        characters = state.characters
+        characterCount = Math.min(1, characters.length)
+        state.visible.textContent = characters.slice(0, characterCount).join('')
+        state.visible.appendChild(cursor)
+        timer = window.setTimeout(typeNext, getDelay(lastCharacter))
         return
       }
 
-      setStatus('finished')
-      finishTimer = window.setTimeout(() => {
-        if (!cancelled) setStatus('done')
-      }, CURSOR_FINISH_DURATION)
+      finish()
     }
 
-    const firstCharacter = graphemes[0]?.[0] || ''
-    typeTimer = window.setTimeout(typeNext, getCharacterDelay(firstCharacter))
-
-    return () => {
-      cancelled = true
-      window.clearTimeout(typeTimer)
-      window.clearTimeout(finishTimer)
-    }
-  }, [blocks, enabled, graphemes])
-
-  if (!html) return null
-
-  if (!enabled || !blocks.length) {
-    return (
-      <div
-        className='markdown-body'
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+    timer = window.setTimeout(
+      typeNext,
+      getDelay(blockStates[0].characters[0] || '')
     )
   }
 
-  const accessibleText = blocks.map(block => block.text).join('\n')
+  window.__startClaudeReadmePreparsedTypewriter = start
+  start(blocks)
+})()
+`
+
+/**
+ * README 全文预解析打字动画。
+ *
+ * 文本块在服务端从 readmeHtml 提取，并在 HTML 解析阶段建立独立动画层。
+ * 不等待 React hydration，不遍历、清空或克隆 Notion 正文。
+ */
+export default function ReadmeTypewriter({
+  enabled = true,
+  readmeHtml = '',
+  html = ''
+}) {
+  const sourceHtml = readmeHtml || html
+  const blocks = useMemo(() => parseReadmeBlocks(sourceHtml), [sourceHtml])
+
+  useEffect(() => {
+    if (!enabled || !blocks.length) return
+    window.__startClaudeReadmePreparsedTypewriter?.(blocks)
+  }, [blocks, enabled])
+
+  if (!enabled || !blocks.length) return null
 
   return (
-    <div className={`markdown-body claude-readme-typewriter is-${status}`}>
-      {status !== 'done' && <span className='sr-only'>{accessibleText}</span>}
-
-      <div
-        className={`claude-readme-original ${
-          status === 'done' ? 'is-visible' : ''
-        }`}
-        aria-hidden={status !== 'done'}
+    <>
+      <script
         suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: createBootstrapScript(blocks) }}
       />
 
-      <div
-        className={`claude-readme-animation-surface claude-readme-notion ${
-          status === 'done' ? 'is-hidden' : ''
-        }`}
-        aria-hidden='true'>
-        <main className='notion light-mode notion-page'>
-          {blocks.map((block, index) => {
-            const characters = graphemes[index] || []
-            let visibleText = ''
-
-            if (index < position.blockIndex) {
-              visibleText = block.text
-            } else if (index === position.blockIndex) {
-              visibleText = characters
-                .slice(0, position.characterCount)
-                .join('')
-            }
-
-            return (
-              <AnimatedBlock
-                key={`${block.index}-${index}`}
-                block={block}
-                visibleText={visibleText}
-                showCursor={index === position.blockIndex && status !== 'done'}
-                isFinished={status === 'finished'}
-              />
-            )
-          })}
-        </main>
-      </div>
-
       <style jsx global>{`
-        .claude-readme-typewriter {
+        .claude-readme-typewriter-shell {
           position: relative;
           width: 100%;
           overflow-anchor: none;
         }
 
-        .claude-readme-original {
-          visibility: hidden;
-          pointer-events: none;
-        }
-
-        .claude-readme-original.is-visible {
-          visibility: visible;
-          pointer-events: auto;
-        }
-
         .claude-readme-animation-surface {
           position: absolute;
           top: 0;
-          left: 50%;
+          left: 0;
           width: 100%;
-          max-width: 760px;
           margin: 0;
-          transform: translateX(-50%);
           pointer-events: none;
-        }
-
-        .claude-readme-animation-surface.is-hidden {
-          visibility: hidden;
         }
 
         .claude-readme-block-grid {
@@ -331,7 +345,7 @@ export default function ReadmeTypewriter({ html = '', enabled = true }) {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .claude-readme-original {
+          .claude-readme-typewriter-original {
             visibility: visible !important;
             pointer-events: auto !important;
           }
@@ -341,6 +355,6 @@ export default function ReadmeTypewriter({ html = '', enabled = true }) {
           }
         }
       `}</style>
-    </div>
+    </>
   )
 }

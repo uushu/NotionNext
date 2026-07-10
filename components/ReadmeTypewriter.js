@@ -1,9 +1,9 @@
-const BASE_CHARACTER_DELAY = 68
-const SPACE_DELAY = 28
-const COMMA_DELAY = 125
-const SENTENCE_DELAY = 205
-const DASH_DELAY = 155
-const BLOCK_DELAY = 70
+const BASE_CHARACTER_DELAY = 80
+const SPACE_DELAY = 34
+const COMMA_DELAY = 145
+const SENTENCE_DELAY = 235
+const DASH_DELAY = 180
+const BLOCK_DELAY = 85
 
 /**
  * 首页 README 的静态快照。

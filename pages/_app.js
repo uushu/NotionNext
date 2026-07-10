@@ -12,7 +12,7 @@ import useAdjustStyle from '@/hooks/useAdjustStyle'
 import { GlobalContextProvider } from '@/lib/global'
 import { getBaseLayoutByTheme } from '@/themes/theme'
 import { useRouter } from 'next/router'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getQueryParam } from '../lib/utils'
 import ErrorHandler from '@/lib/utils/errorHandler'
 
@@ -50,6 +50,7 @@ const MyApp = ({ Component, pageProps }) => {
   useAdjustStyle()
 
   const route = useRouter()
+  const [readmeNavigationEpoch, setReadmeNavigationEpoch] = useState(0)
   const queryTheme = getQueryParam(route.asPath, 'theme')
   const notionTheme = pageProps?.NOTION_CONFIG?.THEME
   const configTheme = BLOG.THEME
@@ -71,6 +72,19 @@ const MyApp = ({ Component, pageProps }) => {
       }
     }
   }, [isClaudeTheme, pageProps])
+
+  useEffect(() => {
+    const handleRouteComplete = () => {
+      // route.asPath 在 / → / 的同路由导航中不会变化。
+      // 独立递增序号确保重复点击“首页”也会销毁旧动画并创建新实例。
+      setReadmeNavigationEpoch(epoch => epoch + 1)
+    }
+
+    route.events.on('routeChangeComplete', handleRouteComplete)
+    return () => {
+      route.events.off('routeChangeComplete', handleRouteComplete)
+    }
+  }, [route.events])
 
   useEffect(() => {
     const source = queryTheme
@@ -118,7 +132,10 @@ const MyApp = ({ Component, pageProps }) => {
           <Component {...renderPageProps} />
         </GLayout>
         {isClaudeTheme && isHomePage && (
-          <ReadmeTypewriter key={`readme-${route.asPath}`} enabled />
+          <ReadmeTypewriter
+            key={`readme-${route.asPath}-${readmeNavigationEpoch}`}
+            enabled
+          />
         )}
         <ClickGlassRipple enabled={isClaudeTheme} />
         <UttoPet enabled={isClaudeTheme} pageProps={renderPageProps} />

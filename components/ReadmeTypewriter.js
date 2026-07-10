@@ -1,38 +1,12 @@
-import { useRouter } from 'next/router'
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useMemo, useState } from 'react'
 
-const FALLBACK_TITLE = '🐰 欢迎来到 utto 兔子的学习屋'
-const SESSION_KEY = 'utto-readme-title-played-v1'
-const START_DELAY = 120
 const CURSOR_FINISH_DURATION = 2400
-
-const useIsomorphicLayoutEffect =
-  typeof window === 'undefined' ? useEffect : useLayoutEffect
-
-const README_TITLE_MOUNT_BOOTSTRAP = `
-;(function () {
-  if (window.location.pathname !== '/') return
-
-  var card = document.querySelector('#theme-claude .claude-readme-card')
-  var body = card && card.querySelector('.markdown-body')
-  if (!card || !body) return
-
-  var mount = card.querySelector('[data-claude-readme-title-mount]')
-  if (!mount) {
-    mount = document.createElement('div')
-    mount.setAttribute('data-claude-readme-title-mount', '')
-    body.parentNode.insertBefore(mount, body)
-  }
-
-  card.classList.add('claude-readme-title-ready')
-})()
-`
 
 const decodeHtmlEntities = value => {
   if (!value) return ''
 
   return value
+    .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -44,15 +18,61 @@ const decodeHtmlEntities = value => {
     )
 }
 
-const extractReadmeTitle = html => {
-  if (!html || typeof html !== 'string') return FALLBACK_TITLE
+const getClassName = attributes => {
+  return attributes.match(/\bclass=(['"])(.*?)\1/i)?.[2] || ''
+}
 
-  const heading = html.match(
-    /<h[1-6]\b[^>]*class=(['"])[^'"]*\bnotion-h\b[^'"]*\1[^>]*>[\s\S]*?<\/h[1-6]>/i
-  )?.[0]
-  const title = heading?.match(/\btitle=(['"])(.*?)\1/i)?.[2]
+const htmlToText = html => {
+  return decodeHtmlEntities(
+    String(html || '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+      .replace(/<svg[\s\S]*?>[\s\S]*?<\/svg>/gi, '')
+      .replace(/<[^>]+>/g, '')
+  )
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
-  return decodeHtmlEntities(title || '') || FALLBACK_TITLE
+const parseReadmeBlocks = html => {
+  if (!html || typeof html !== 'string') return []
+
+  const blocks = []
+  const headingPattern =
+    /<(h[1-6])\b([^>]*class=(['"])[^'"]*\bnotion-h\b[^'"]*\3[^>]*)>([\s\S]*?)<\/\1>/gi
+  const textPattern =
+    /<div\b([^>]*class=(['"])[^'"]*\bnotion-text\b[^'"]*\2[^>]*)>([\s\S]*?)<\/div>/gi
+
+  let match = headingPattern.exec(html)
+  while (match) {
+    const text = htmlToText(match[4])
+    if (text) {
+      blocks.push({
+        index: match.index,
+        tag: match[1].toLowerCase(),
+        className: getClassName(match[2]),
+        text
+      })
+    }
+    match = headingPattern.exec(html)
+  }
+
+  match = textPattern.exec(html)
+  while (match) {
+    const text = htmlToText(match[3])
+    if (text) {
+      blocks.push({
+        index: match.index,
+        tag: 'div',
+        className: getClassName(match[1]),
+        text
+      })
+    }
+    match = textPattern.exec(html)
+  }
+
+  return blocks.sort((a, b) => a.index - b.index)
 }
 
 const splitGraphemes = text => {
@@ -70,225 +90,236 @@ const splitGraphemes = text => {
 const getCharacterDelay = character => {
   if (/[。！？!?]/.test(character)) return 220
   if (/[，、：；,;:]/.test(character)) return 140
+  if (/[…—]/.test(character)) return 170
   if (/\s/.test(character)) return 35
   return 55 + Math.round(Math.random() * 30)
 }
 
-const ensureTitleMount = () => {
-  const card = document.querySelector('#theme-claude .claude-readme-card')
-  const body = card?.querySelector('.markdown-body')
-  if (!card || !body) return null
+const AnimatedBlock = ({ block, visibleText, showCursor, isFinished }) => {
+  const Tag = block.tag
 
-  let mount = card.querySelector('[data-claude-readme-title-mount]')
-  if (!mount) {
-    mount = document.createElement('div')
-    mount.setAttribute('data-claude-readme-title-mount', '')
-    body.parentNode?.insertBefore(mount, body)
-  }
-
-  card.classList.add('claude-readme-title-ready')
-  return mount
+  return (
+    <Tag className={`${block.className} claude-readme-animated-block`}>
+      <span className='claude-readme-block-grid'>
+        <span className='claude-readme-block-placeholder' aria-hidden='true'>
+          {block.text}
+        </span>
+        <span className='claude-readme-block-visible' aria-hidden='true'>
+          {visibleText}
+          {showCursor && (
+            <span
+              className={`claude-readme-block-cursor ${
+                isFinished ? 'is-finished' : ''
+              }`}
+            />
+          )}
+        </span>
+      </span>
+    </Tag>
+  )
 }
 
-const TypewriterTitle = ({ text }) => {
-  const [visibleText, setVisibleText] = useState('')
-  const [status, setStatus] = useState('waiting')
+/**
+ * README 全文打字动画。
+ *
+ * readmeHtml 在 React 渲染前被解析成独立文本块。首个字符直接进入服务端 HTML，
+ * 后续字符在客户端连续播放，不查询、不清空、不克隆 Notion DOM。
+ */
+export default function ReadmeTypewriter({ html = '', enabled = true }) {
+  const blocks = useMemo(() => parseReadmeBlocks(html), [html])
+  const graphemes = useMemo(
+    () => blocks.map(block => splitGraphemes(block.text)),
+    [blocks]
+  )
+  const [position, setPosition] = useState({ blockIndex: 0, characterCount: 1 })
+  const [status, setStatus] = useState('typing')
 
   useEffect(() => {
-    let typeTimer
-    let finishTimer
-    let cancelled = false
+    if (!enabled || !blocks.length) return undefined
 
-    const reduceMotion = window.matchMedia?.(
-      '(prefers-reduced-motion: reduce)'
-    ).matches
-    const hasPlayed = window.sessionStorage?.getItem(SESSION_KEY) === 'true'
-
-    if (reduceMotion || hasPlayed) {
-      setVisibleText(text)
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
       setStatus('done')
       return undefined
     }
 
-    const characters = splitGraphemes(text)
-    let index = 0
+    let blockIndex = 0
+    let characterCount = 1
+    let typeTimer
+    let finishTimer
+    let cancelled = false
+
+    setPosition({ blockIndex, characterCount })
+    setStatus('typing')
 
     const typeNext = () => {
       if (cancelled) return
 
-      index += 1
-      setStatus('typing')
-      setVisibleText(characters.slice(0, index).join(''))
+      const currentCharacters = graphemes[blockIndex] || []
 
-      if (index >= characters.length) {
-        window.sessionStorage?.setItem(SESSION_KEY, 'true')
-        setStatus('finished')
-        finishTimer = window.setTimeout(() => {
-          if (!cancelled) setStatus('done')
-        }, CURSOR_FINISH_DURATION)
+      if (characterCount < currentCharacters.length) {
+        const previousCharacter = currentCharacters[characterCount - 1] || ''
+        characterCount += 1
+        setPosition({ blockIndex, characterCount })
+        typeTimer = window.setTimeout(
+          typeNext,
+          getCharacterDelay(previousCharacter)
+        )
         return
       }
 
-      typeTimer = window.setTimeout(
-        typeNext,
-        getCharacterDelay(characters[index - 1])
-      )
+      if (blockIndex < graphemes.length - 1) {
+        const previousCharacter = currentCharacters[currentCharacters.length - 1] || ''
+        blockIndex += 1
+        characterCount = Math.min(1, graphemes[blockIndex]?.length || 0)
+        setPosition({ blockIndex, characterCount })
+        typeTimer = window.setTimeout(
+          typeNext,
+          getCharacterDelay(previousCharacter)
+        )
+        return
+      }
+
+      setStatus('finished')
+      finishTimer = window.setTimeout(() => {
+        if (!cancelled) setStatus('done')
+      }, CURSOR_FINISH_DURATION)
     }
 
-    typeTimer = window.setTimeout(typeNext, START_DELAY)
+    const firstCharacter = graphemes[0]?.[0] || ''
+    typeTimer = window.setTimeout(typeNext, getCharacterDelay(firstCharacter))
 
     return () => {
       cancelled = true
       window.clearTimeout(typeTimer)
       window.clearTimeout(finishTimer)
     }
-  }, [text])
+  }, [blocks, enabled, graphemes])
+
+  if (!html) return null
+
+  if (!enabled || !blocks.length) {
+    return (
+      <div
+        className='markdown-body'
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    )
+  }
+
+  const accessibleText = blocks.map(block => block.text).join('\n')
 
   return (
-    <h3
-      className={`claude-readme-typewriter-title is-${status}`}
-      aria-label={text}>
-      <span className='claude-readme-title-placeholder' aria-hidden='true'>
-        {text}
-      </span>
-      <span className='claude-readme-title-visible' aria-hidden='true'>
-        {visibleText}
-        {status !== 'done' && <span className='claude-readme-title-cursor' />}
-      </span>
-    </h3>
-  )
-}
+    <div className={`markdown-body claude-readme-typewriter is-${status}`}>
+      {status !== 'done' && <span className='sr-only'>{accessibleText}</span>}
 
-/**
- * Claude 首页 README 独立标题动画。
- *
- * 只在卡片中创建独立标题挂载点，不遍历、不清空、不重写 Notion 正文。
- * 隐藏的完整标题负责固定尺寸，因此逐字显示期间不会引起布局跳动。
- */
-export default function ReadmeTypewriter({ enabled = true, readmeHtml = '' }) {
-  const router = useRouter()
-  const [mount, setMount] = useState(null)
-  const title = useMemo(() => extractReadmeTitle(readmeHtml), [readmeHtml])
-  const isHome = router.pathname === '/'
+      <div
+        className={`claude-readme-original ${
+          status === 'done' ? 'is-visible' : ''
+        }`}
+        aria-hidden={status !== 'done'}
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
 
-  useIsomorphicLayoutEffect(() => {
-    if (!enabled || !isHome || typeof document === 'undefined') {
-      setMount(null)
-      return undefined
-    }
+      <div
+        className={`claude-readme-animation-surface claude-readme-notion ${
+          status === 'done' ? 'is-hidden' : ''
+        }`}
+        aria-hidden='true'>
+        <main className='notion light-mode notion-page'>
+          {blocks.map((block, index) => {
+            const characters = graphemes[index] || []
+            let visibleText = ''
 
-    const target = ensureTitleMount()
-    setMount(target)
+            if (index < position.blockIndex) {
+              visibleText = block.text
+            } else if (index === position.blockIndex) {
+              visibleText = characters
+                .slice(0, position.characterCount)
+                .join('')
+            }
 
-    return () => {
-      const card = target?.closest('.claude-readme-card')
-      card?.classList.remove('claude-readme-title-ready')
-      target?.remove()
-      setMount(null)
-    }
-  }, [enabled, isHome, router.asPath])
-
-  if (!enabled) return null
-
-  return (
-    <>
-      {isHome && (
-        <script
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: README_TITLE_MOUNT_BOOTSTRAP }}
-        />
-      )}
-
-      {mount && createPortal(<TypewriterTitle text={title} />, mount)}
+            return (
+              <AnimatedBlock
+                key={`${block.index}-${index}`}
+                block={block}
+                visibleText={visibleText}
+                showCursor={index === position.blockIndex && status !== 'done'}
+                isFinished={status === 'finished'}
+              />
+            )
+          })}
+        </main>
+      </div>
 
       <style jsx global>{`
-        [data-claude-readme-title-mount] {
+        .claude-readme-typewriter {
+          position: relative;
+          width: 100%;
+          overflow-anchor: none;
+        }
+
+        .claude-readme-original {
+          visibility: hidden;
+          pointer-events: none;
+        }
+
+        .claude-readme-original.is-visible {
+          visibility: visible;
+          pointer-events: auto;
+        }
+
+        .claude-readme-animation-surface {
+          position: absolute;
+          top: 0;
+          left: 50%;
           width: 100%;
           max-width: 760px;
-          min-height: 25px;
-          margin: 24px auto 16px;
-          text-align: center;
+          margin: 0;
+          transform: translateX(-50%);
+          pointer-events: none;
         }
 
-        .claude-readme-typewriter-title {
+        .claude-readme-animation-surface.is-hidden {
+          visibility: hidden;
+        }
+
+        .claude-readme-block-grid {
           display: grid;
           width: 100%;
-          margin: 0;
-          color: var(--claude-gh-fg-default);
-          font-family: var(
-            --fontStack-sansSerif,
-            -apple-system,
-            BlinkMacSystemFont,
-            'Segoe UI',
-            'Noto Sans',
-            Helvetica,
-            Arial,
-            sans-serif,
-            'Apple Color Emoji',
-            'Segoe UI Emoji'
-          );
-          font-size: 1.25em;
-          font-weight: 600;
-          line-height: 1.25;
-          letter-spacing: normal;
-          text-align: center;
-          overflow-wrap: anywhere;
+          min-width: 0;
         }
 
-        .claude-readme-title-placeholder,
-        .claude-readme-title-visible {
+        .claude-readme-block-placeholder,
+        .claude-readme-block-visible {
           grid-area: 1 / 1;
           min-width: 0;
           overflow-wrap: anywhere;
         }
 
-        .claude-readme-title-placeholder {
+        .claude-readme-block-placeholder {
           visibility: hidden;
           pointer-events: none;
           user-select: none;
         }
 
-        .claude-readme-title-visible {
-          position: relative;
-        }
-
-        .claude-readme-title-cursor {
+        .claude-readme-block-cursor {
           display: inline-block;
           width: 2px;
           height: 0.95em;
           margin-left: 4px;
           vertical-align: -0.08em;
           background: currentColor;
-          animation: claude-readme-title-cursor-blink 0.8s steps(1, end)
+          animation: claude-readme-block-cursor-blink 0.8s steps(1, end)
             infinite;
         }
 
-        .claude-readme-typewriter-title.is-finished
-          .claude-readme-title-cursor {
+        .claude-readme-block-cursor.is-finished {
           animation-iteration-count: 3;
         }
 
-        @media (scripting: enabled) {
-          #theme-claude
-            .claude-readme-card
-            .markdown-body
-            .claude-readme-notion
-            main
-            > .notion-h:first-of-type {
-            visibility: hidden !important;
-          }
-
-          #theme-claude
-            .claude-readme-card.claude-readme-title-ready
-            .markdown-body
-            .claude-readme-notion
-            main
-            > .notion-h:first-of-type {
-            display: none !important;
-          }
-        }
-
-        @keyframes claude-readme-title-cursor-blink {
+        @keyframes claude-readme-block-cursor-blink {
           0%,
           48% {
             opacity: 1;
@@ -299,25 +330,17 @@ export default function ReadmeTypewriter({ enabled = true, readmeHtml = '' }) {
           }
         }
 
-        @media (max-width: 420px) {
-          [data-claude-readme-title-mount] {
-            margin-top: 20px;
-          }
-
-          .claude-readme-typewriter-title {
-            font-size: 1.12em;
-            line-height: 1.4;
-            padding: 0 8px;
-          }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .claude-readme-title-cursor {
-            display: none;
-            animation: none;
+          .claude-readme-original {
+            visibility: visible !important;
+            pointer-events: auto !important;
+          }
+
+          .claude-readme-animation-surface {
+            display: none !important;
           }
         }
       `}</style>
-    </>
+    </div>
   )
 }

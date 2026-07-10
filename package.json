@@ -17,7 +17,9 @@
     "url": "http://tangly1024.com"
   },
   "scripts": {
+    "predev": "node scripts/prepare-utto-gifs.js",
     "dev": "next dev",
+    "prebuild": "node scripts/prepare-utto-gifs.js",
     "build": "cross-env BUILD_MODE=true next build",
     "start": "next start",
     "post-build": "next-sitemap --config next-sitemap.config.js",

@@ -1,15 +1,20 @@
+import { useRouter } from 'next/router'
+import { useEffect } from 'react'
+
 const BASE_CHARACTER_DELAY = 80
 const SPACE_DELAY = 34
 const COMMA_DELAY = 145
 const SENTENCE_DELAY = 235
 const DASH_DELAY = 180
 const BLOCK_DELAY = 85
+const FINAL_CURSOR_DURATION = 2400
 
 /**
  * 首页 README 的静态快照。
  *
- * 文本直接进入服务端首屏 HTML，不读取 Notion，也不等待客户端脚本。
- * 每个内容块只使用一个裁切动画和一个光标，避免逐字符 DOM 节点破坏排版。
+ * 文本直接进入服务端首屏 HTML，不读取 Notion。
+ * 完整文本只作为透明占位，实际内容由客户端按字符逐步追加，避免 clip-path
+ * 对中文、emoji 和彩色嵌套文本造成截断。
  */
 const README_BLOCKS = [
   {
@@ -82,113 +87,57 @@ const TYPEWRITER_CSS = `
 
 #theme-claude .claude-prestored-readme-line {
   position: relative;
-  display: inline-block;
+  display: inline-grid;
   max-width: 100%;
   white-space: nowrap;
   vertical-align: bottom;
 }
 
-#theme-claude .claude-prestored-readme-text {
-  display: inline-block;
-  max-width: 100%;
-  -webkit-clip-path: inset(0 100% 0 0);
-  clip-path: inset(0 100% 0 0);
-  animation-name: claude-prestored-readme-reveal;
-  animation-duration: var(--claude-readme-duration);
-  animation-timing-function: steps(var(--claude-readme-steps), end);
-  animation-delay: var(--claude-readme-delay);
-  animation-fill-mode: forwards;
+#theme-claude .claude-prestored-readme-placeholder,
+#theme-claude .claude-prestored-readme-visible {
+  grid-area: 1 / 1;
 }
 
-#theme-claude .claude-prestored-readme-line::after {
-  content: '';
-  position: absolute;
-  top: 0.12em;
-  bottom: 0.12em;
-  left: 0;
+#theme-claude .claude-prestored-readme-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+#theme-claude .claude-prestored-readme-visible {
+  justify-self: start;
+  min-width: 0;
+}
+
+#theme-claude .claude-prestored-readme-cursor {
+  display: inline-block;
   width: 2px;
+  height: 0.95em;
+  margin-left: 3px;
+  vertical-align: -0.08em;
   border-radius: 1px;
   background: currentColor;
-  opacity: 0;
   pointer-events: none;
-  animation-name: claude-prestored-readme-cursor-move;
-  animation-duration: var(--claude-readme-duration);
-  animation-timing-function: steps(var(--claude-readme-steps), end);
-  animation-delay: var(--claude-readme-delay);
-  animation-fill-mode: forwards;
 }
 
-#theme-claude .claude-prestored-readme-line.is-final::after {
-  animation-name:
-    claude-prestored-readme-cursor-move,
-    claude-prestored-readme-final-cursor;
-  animation-duration:
-    var(--claude-readme-duration),
-    0.8s;
-  animation-timing-function:
-    steps(var(--claude-readme-steps), end),
-    steps(1, end);
-  animation-delay:
-    var(--claude-readme-delay),
-    calc(var(--claude-readme-delay) + var(--claude-readme-duration));
-  animation-iteration-count:
-    1,
-    3;
-  animation-fill-mode:
-    forwards,
-    none;
-}
-
-@keyframes claude-prestored-readme-reveal {
-  from {
-    -webkit-clip-path: inset(0 100% 0 0);
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    -webkit-clip-path: inset(0 0 0 0);
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes claude-prestored-readme-cursor-move {
-  0% {
-    left: 0;
-    opacity: 1;
-  }
-  98% {
-    opacity: 1;
-  }
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
+#theme-claude .claude-prestored-readme-cursor.is-finished {
+  animation: claude-prestored-readme-final-cursor 0.8s steps(1, end) 3;
 }
 
 @keyframes claude-prestored-readme-final-cursor {
-  0%, 48% {
-    left: 100%;
-    opacity: 1;
-  }
-  49%, 100% {
-    left: 100%;
-    opacity: 0;
-  }
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
 }
 
-@media (max-width: 640px), (prefers-reduced-motion: reduce) {
+@media (max-width: 640px) {
   #theme-claude .claude-prestored-readme-line {
+    width: 100%;
     white-space: normal;
   }
 
-  #theme-claude .claude-prestored-readme-text {
-    -webkit-clip-path: none !important;
-    clip-path: none !important;
-    animation: none !important;
-  }
-
-  #theme-claude .claude-prestored-readme-line::after {
-    display: none !important;
-    animation: none !important;
+  #theme-claude .claude-prestored-readme-placeholder,
+  #theme-claude .claude-prestored-readme-visible {
+    width: 100%;
   }
 }
 `
@@ -225,65 +174,207 @@ const getCharacterDuration = character => {
   return BASE_CHARACTER_DELAY
 }
 
-const getBlockTiming = block => {
-  const characters = block.segments.flatMap(segment => splitGraphemes(segment.text))
-  const duration = characters.reduce(
-    (total, character) => total + getCharacterDuration(character),
-    0
-  )
-
-  return {
-    steps: Math.max(1, characters.length),
-    duration: Math.max(BASE_CHARACTER_DELAY, duration)
-  }
-}
-
-const renderSegment = segment => {
+const renderSegmentBody = (segment, text) => {
   const classAttribute = segment.className
     ? ` class="${escapeHtml(segment.className)}"`
     : ''
-  const text = escapeHtml(segment.text)
-  const body = segment.strong ? `<b>${text}</b>` : text
+  const escapedText = escapeHtml(text)
+  const body = segment.strong ? `<b>${escapedText}</b>` : escapedText
 
   return segment.className || segment.strong
     ? `<span${classAttribute}>${body}</span>`
     : body
 }
 
+const renderFullBlock = block => {
+  return block.segments.map(segment => renderSegmentBody(segment, segment.text)).join('')
+}
+
+const getBlockCharacters = block => {
+  const characters = []
+
+  block.segments.forEach((segment, segmentIndex) => {
+    splitGraphemes(segment.text).forEach(character => {
+      characters.push({ character, segmentIndex })
+    })
+  })
+
+  return characters
+}
+
+const renderVisibleBlock = (block, visibleCount) => {
+  let remaining = Math.max(0, visibleCount)
+
+  return block.segments
+    .map(segment => {
+      if (remaining <= 0) return ''
+
+      const characters = splitGraphemes(segment.text)
+      const visibleCharacters = characters.slice(0, remaining)
+      remaining -= visibleCharacters.length
+
+      if (!visibleCharacters.length) return ''
+      return renderSegmentBody(segment, visibleCharacters.join(''))
+    })
+    .join('')
+}
+
 const createStaticReadmeHtml = () => {
-  let timeline = 0
-
   const blocksHtml = README_BLOCKS.map((block, blockIndex) => {
-    const { steps, duration } = getBlockTiming(block)
-    const segmentsHtml = block.segments.map(renderSegment).join('')
-    const isFinal = blockIndex === README_BLOCKS.length - 1
-    const lineClassName = `claude-prestored-readme-line${isFinal ? ' is-final' : ''}`
-    const lineStyle = [
-      `--claude-readme-delay:${timeline}ms`,
-      `--claude-readme-duration:${duration}ms`,
-      `--claude-readme-steps:${steps}`
-    ].join(';')
+    const fullHtml = renderFullBlock(block)
+    const initialVisibleHtml = blockIndex === 0 ? renderVisibleBlock(block, 1) : ''
 
-    timeline += duration
-    if (!isFinal) timeline += BLOCK_DELAY
-
-    return `<${block.tag} class="${escapeHtml(block.className)}"><span class="${lineClassName}" style="${lineStyle}"><span class="claude-prestored-readme-text">${segmentsHtml}</span></span></${block.tag}>`
+    return `<${block.tag} class="${escapeHtml(block.className)}" aria-label="${escapeHtml(
+      block.segments.map(segment => segment.text).join('')
+    )}"><span class="claude-prestored-readme-line"><span class="claude-prestored-readme-placeholder" aria-hidden="true">${fullHtml}</span><span class="claude-prestored-readme-visible" data-claude-readme-block="${blockIndex}" aria-hidden="true">${initialVisibleHtml}${
+      blockIndex === 0
+        ? '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
+        : ''
+    }</span></span></${block.tag}>`
   }).join('')
 
-  return `<style data-claude-prestored-readme-style>${TYPEWRITER_CSS}</style><div id="notion-article" class="mx-auto overflow-hidden claude-readme-notion claude-prestored-readme"><main class="notion light-mode notion-page">${blocksHtml}</main></div>`
+  return `<style data-claude-prestored-readme-style>${TYPEWRITER_CSS}</style><div id="notion-article" class="mx-auto overflow-hidden claude-readme-notion claude-prestored-readme" data-claude-readme-state="idle"><main class="notion light-mode notion-page">${blocksHtml}</main></div>`
 }
 
 const STATIC_README_HTML = createStaticReadmeHtml()
+const BLOCK_CHARACTERS = README_BLOCKS.map(getBlockCharacters)
 
 /**
- * 用预存文本完全替换首页 README 的动态 HTML。
- * 参数保留是为了兼容现有调用，但不会读取或解析传入内容。
+ * 用预存文本替换首页 README 的动态 HTML。
+ * 第一个字符直接进入首屏 HTML，避免动画启动前出现空白。
  */
 export const prepareReadmeTypewriterHtml = () => STATIC_README_HTML
 
-/**
- * 样式与动画均已随 README 首屏 HTML 直接输出，这里无需运行客户端逻辑。
- */
-export default function ReadmeTypewriter() {
+const renderBlockIntoNode = ({ blockIndex, visibleCount, cursorClassName = '' }) => {
+  const node = document.querySelector(
+    `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
+  )
+  if (!node) return
+
+  const cursorHtml = cursorClassName
+    ? `<span class="claude-prestored-readme-cursor ${cursorClassName}" aria-hidden="true"></span>`
+    : ''
+
+  node.innerHTML = `${renderVisibleBlock(README_BLOCKS[blockIndex], visibleCount)}${cursorHtml}`
+}
+
+export default function ReadmeTypewriter({ enabled = true }) {
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!enabled || router.pathname !== '/') return undefined
+
+    const shell = document.querySelector('.claude-prestored-readme')
+    if (!shell || shell.dataset.claudeReadmeState === 'typing') return undefined
+
+    let timer = null
+    let cancelled = false
+
+    const showAll = () => {
+      README_BLOCKS.forEach((_, blockIndex) => {
+        renderBlockIntoNode({
+          blockIndex,
+          visibleCount: BLOCK_CHARACTERS[blockIndex].length
+        })
+      })
+      shell.dataset.claudeReadmeState = 'done'
+    }
+
+    if (
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      showAll()
+      return undefined
+    }
+
+    shell.dataset.claudeReadmeState = 'typing'
+
+    let blockIndex = 0
+    let visibleCount = 1
+
+    const finish = () => {
+      renderBlockIntoNode({
+        blockIndex: README_BLOCKS.length - 1,
+        visibleCount: BLOCK_CHARACTERS[README_BLOCKS.length - 1].length,
+        cursorClassName: 'is-finished'
+      })
+
+      timer = window.setTimeout(() => {
+        if (cancelled) return
+        renderBlockIntoNode({
+          blockIndex: README_BLOCKS.length - 1,
+          visibleCount: BLOCK_CHARACTERS[README_BLOCKS.length - 1].length
+        })
+        shell.dataset.claudeReadmeState = 'done'
+      }, FINAL_CURSOR_DURATION)
+    }
+
+    const advance = () => {
+      if (cancelled) return
+
+      const characters = BLOCK_CHARACTERS[blockIndex]
+      const currentCharacter = characters[Math.max(0, visibleCount - 1)]?.character || ''
+
+      if (visibleCount < characters.length) {
+        timer = window.setTimeout(() => {
+          if (cancelled) return
+          visibleCount += 1
+          renderBlockIntoNode({
+            blockIndex,
+            visibleCount,
+            cursorClassName: ''
+          })
+          const node = document.querySelector(
+            `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
+          )
+          if (node) {
+            node.insertAdjacentHTML(
+              'beforeend',
+              '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
+            )
+          }
+          advance()
+        }, getCharacterDuration(currentCharacter))
+        return
+      }
+
+      if (blockIndex >= README_BLOCKS.length - 1) {
+        finish()
+        return
+      }
+
+      timer = window.setTimeout(() => {
+        if (cancelled) return
+
+        renderBlockIntoNode({ blockIndex, visibleCount: characters.length })
+        blockIndex += 1
+        visibleCount = 1
+        renderBlockIntoNode({
+          blockIndex,
+          visibleCount,
+          cursorClassName: ''
+        })
+        const node = document.querySelector(
+          `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
+        )
+        if (node) {
+          node.insertAdjacentHTML(
+            'beforeend',
+            '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
+          )
+        }
+        advance()
+      }, BLOCK_DELAY)
+    }
+
+    advance()
+
+    return () => {
+      cancelled = true
+      if (timer) window.clearTimeout(timer)
+    }
+  }, [enabled, router.pathname, router.asPath])
+
   return null
 }

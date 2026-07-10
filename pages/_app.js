@@ -25,7 +25,7 @@ import ReadmeTypewriter, {
   prepareReadmeTypewriterHtml
 } from '@/components/ReadmeTypewriter'
 import SEO from '@/components/SEO'
-import UttoPet from '@/components/UttoPet'
+import UttoPet from '@/components/pet/utto'
 import { zhCN } from '@clerk/localizations'
 import dynamic from 'next/dynamic'
 // import { ClerkProvider } from '@clerk/nextjs'

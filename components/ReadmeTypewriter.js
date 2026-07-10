@@ -72,75 +72,75 @@ const README_BLOCKS = [
 ]
 
 const TYPEWRITER_CSS = `
-#theme-claude .claude-prestored-readme {
-  width: 100%;
-  max-width: 760px;
-  margin-left: auto;
-  margin-right: auto;
-  overflow-anchor: none;
-}
+ #theme-claude .claude-prestored-readme {
+   width: 100%;
+   max-width: 760px;
+   margin-left: auto;
+   margin-right: auto;
+   overflow-anchor: none;
+ }
 
-#theme-claude .claude-prestored-readme,
-#theme-claude .claude-prestored-readme * {
-  text-align: center;
-}
+ #theme-claude .claude-prestored-readme,
+ #theme-claude .claude-prestored-readme * {
+   text-align: center;
+ }
 
-#theme-claude .claude-prestored-readme-line {
-  position: relative;
-  display: inline-grid;
-  max-width: 100%;
-  white-space: nowrap;
-  vertical-align: bottom;
-}
+ #theme-claude .claude-prestored-readme-line {
+   position: relative;
+   display: inline-grid;
+   max-width: 100%;
+   white-space: nowrap;
+   vertical-align: bottom;
+ }
 
-#theme-claude .claude-prestored-readme-placeholder,
-#theme-claude .claude-prestored-readme-visible {
-  grid-area: 1 / 1;
-}
+ #theme-claude .claude-prestored-readme-placeholder,
+ #theme-claude .claude-prestored-readme-visible {
+   grid-area: 1 / 1;
+ }
 
-#theme-claude .claude-prestored-readme-placeholder {
-  visibility: hidden;
-  pointer-events: none;
-  user-select: none;
-}
+ #theme-claude .claude-prestored-readme-placeholder {
+   visibility: hidden;
+   pointer-events: none;
+   user-select: none;
+ }
 
-#theme-claude .claude-prestored-readme-visible {
-  justify-self: start;
-  min-width: 0;
-}
+ #theme-claude .claude-prestored-readme-visible {
+   justify-self: start;
+   min-width: 0;
+ }
 
-#theme-claude .claude-prestored-readme-cursor {
-  display: inline-block;
-  width: 2px;
-  height: 0.95em;
-  margin-left: 3px;
-  vertical-align: -0.08em;
-  border-radius: 1px;
-  background: currentColor;
-  pointer-events: none;
-}
+ #theme-claude .claude-prestored-readme-cursor {
+   display: inline-block;
+   width: 2px;
+   height: 0.95em;
+   margin-left: 3px;
+   vertical-align: -0.08em;
+   border-radius: 1px;
+   background: currentColor;
+   pointer-events: none;
+ }
 
-#theme-claude .claude-prestored-readme-cursor.is-finished {
-  animation: claude-prestored-readme-final-cursor 0.8s steps(1, end) 3;
-}
+ #theme-claude .claude-prestored-readme-cursor.is-finished {
+   animation: claude-prestored-readme-final-cursor 0.8s steps(1, end) 3;
+ }
 
-@keyframes claude-prestored-readme-final-cursor {
-  0%, 48% { opacity: 1; }
-  49%, 100% { opacity: 0; }
-}
+ @keyframes claude-prestored-readme-final-cursor {
+   0%, 48% { opacity: 1; }
+   49%, 100% { opacity: 0; }
+ }
 
-@media (max-width: 640px) {
-  #theme-claude .claude-prestored-readme-line {
-    width: 100%;
-    white-space: normal;
-  }
+ @media (max-width: 640px) {
+   #theme-claude .claude-prestored-readme-line {
+     width: 100%;
+     white-space: normal;
+   }
 
-  #theme-claude .claude-prestored-readme-placeholder,
-  #theme-claude .claude-prestored-readme-visible {
-    width: 100%;
-  }
-}
-`
+   #theme-claude .claude-prestored-readme-placeholder,
+   #theme-claude .claude-prestored-readme-visible {
+     width: 100%;
+   }
+ }
+ `
 
 const escapeHtml = value => {
   return String(value || '')
@@ -187,7 +187,9 @@ const renderSegmentBody = (segment, text) => {
 }
 
 const renderFullBlock = block => {
-  return block.segments.map(segment => renderSegmentBody(segment, segment.text)).join('')
+  return block.segments
+    .map(segment => renderSegmentBody(segment, segment.text))
+    .join('')
 }
 
 const getBlockCharacters = block => {
@@ -222,9 +224,12 @@ const renderVisibleBlock = (block, visibleCount) => {
 const createStaticReadmeHtml = () => {
   const blocksHtml = README_BLOCKS.map((block, blockIndex) => {
     const fullHtml = renderFullBlock(block)
-    const initialVisibleHtml = blockIndex === 0 ? renderVisibleBlock(block, 1) : ''
+    const initialVisibleHtml =
+      blockIndex === 0 ? renderVisibleBlock(block, 1) : ''
 
-    return `<${block.tag} class="${escapeHtml(block.className)}" aria-label="${escapeHtml(
+    return `<${block.tag} class="${escapeHtml(
+      block.className
+    )}" aria-label="${escapeHtml(
       block.segments.map(segment => segment.text).join('')
     )}"><span class="claude-prestored-readme-line"><span class="claude-prestored-readme-placeholder" aria-hidden="true">${fullHtml}</span><span class="claude-prestored-readme-visible" data-claude-readme-block="${blockIndex}" aria-hidden="true">${initialVisibleHtml}${
       blockIndex === 0
@@ -245,8 +250,13 @@ const BLOCK_CHARACTERS = README_BLOCKS.map(getBlockCharacters)
  */
 export const prepareReadmeTypewriterHtml = () => STATIC_README_HTML
 
-const renderBlockIntoNode = ({ blockIndex, visibleCount, cursorClassName = '' }) => {
-  const node = document.querySelector(
+const renderBlockIntoNode = ({
+  blockIndex,
+  visibleCount,
+  cursorClassName = '',
+  root = document
+}) => {
+  const node = root.querySelector(
     `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
   )
   if (!node) return
@@ -255,7 +265,10 @@ const renderBlockIntoNode = ({ blockIndex, visibleCount, cursorClassName = '' })
     ? `<span class="claude-prestored-readme-cursor ${cursorClassName}" aria-hidden="true"></span>`
     : ''
 
-  node.innerHTML = `${renderVisibleBlock(README_BLOCKS[blockIndex], visibleCount)}${cursorHtml}`
+  node.innerHTML = `${renderVisibleBlock(
+    README_BLOCKS[blockIndex],
+    visibleCount
+  )}${cursorHtml}`
 }
 
 export default function ReadmeTypewriter({ enabled = true }) {
@@ -265,19 +278,46 @@ export default function ReadmeTypewriter({ enabled = true }) {
     if (!enabled || router.pathname !== '/') return undefined
 
     const shell = document.querySelector('.claude-prestored-readme')
-    if (!shell || shell.dataset.claudeReadmeState === 'typing') return undefined
+    if (!shell) return undefined
 
     let timer = null
     let cancelled = false
 
+    const renderBlock = options => {
+      renderBlockIntoNode({ ...options, root: shell })
+    }
+
+    const appendCursor = (blockIndex, className = '') => {
+      const node = shell.querySelector(
+        `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
+      )
+      if (!node) return
+
+      node.insertAdjacentHTML(
+        'beforeend',
+        `<span class="claude-prestored-readme-cursor ${className}" aria-hidden="true"></span>`
+      )
+    }
+
     const showAll = () => {
       README_BLOCKS.forEach((_, blockIndex) => {
-        renderBlockIntoNode({
+        renderBlock({
           blockIndex,
           visibleCount: BLOCK_CHARACTERS[blockIndex].length
         })
       })
       shell.dataset.claudeReadmeState = 'done'
+    }
+
+    const resetForTyping = () => {
+      README_BLOCKS.forEach((_, blockIndex) => {
+        renderBlock({
+          blockIndex,
+          visibleCount: blockIndex === 0 ? 1 : 0
+        })
+      })
+      appendCursor(0)
+      shell.dataset.claudeReadmeState = 'idle'
     }
 
     if (
@@ -288,13 +328,16 @@ export default function ReadmeTypewriter({ enabled = true }) {
       return undefined
     }
 
+    // 每次通过客户端路由重新进入首页，都从一致的初始状态开始。
+    // 不能沿用上一次被中断的 typing 状态，否则会永久停在第一个 emoji。
+    resetForTyping()
     shell.dataset.claudeReadmeState = 'typing'
 
     let blockIndex = 0
     let visibleCount = 1
 
     const finish = () => {
-      renderBlockIntoNode({
+      renderBlock({
         blockIndex: README_BLOCKS.length - 1,
         visibleCount: BLOCK_CHARACTERS[README_BLOCKS.length - 1].length,
         cursorClassName: 'is-finished'
@@ -302,7 +345,7 @@ export default function ReadmeTypewriter({ enabled = true }) {
 
       timer = window.setTimeout(() => {
         if (cancelled) return
-        renderBlockIntoNode({
+        renderBlock({
           blockIndex: README_BLOCKS.length - 1,
           visibleCount: BLOCK_CHARACTERS[README_BLOCKS.length - 1].length
         })
@@ -314,26 +357,18 @@ export default function ReadmeTypewriter({ enabled = true }) {
       if (cancelled) return
 
       const characters = BLOCK_CHARACTERS[blockIndex]
-      const currentCharacter = characters[Math.max(0, visibleCount - 1)]?.character || ''
+      const currentCharacter =
+        characters[Math.max(0, visibleCount - 1)]?.character || ''
 
       if (visibleCount < characters.length) {
         timer = window.setTimeout(() => {
           if (cancelled) return
           visibleCount += 1
-          renderBlockIntoNode({
+          renderBlock({
             blockIndex,
-            visibleCount,
-            cursorClassName: ''
+            visibleCount
           })
-          const node = document.querySelector(
-            `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
-          )
-          if (node) {
-            node.insertAdjacentHTML(
-              'beforeend',
-              '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
-            )
-          }
+          appendCursor(blockIndex)
           advance()
         }, getCharacterDuration(currentCharacter))
         return
@@ -347,23 +382,14 @@ export default function ReadmeTypewriter({ enabled = true }) {
       timer = window.setTimeout(() => {
         if (cancelled) return
 
-        renderBlockIntoNode({ blockIndex, visibleCount: characters.length })
+        renderBlock({ blockIndex, visibleCount: characters.length })
         blockIndex += 1
         visibleCount = 1
-        renderBlockIntoNode({
+        renderBlock({
           blockIndex,
-          visibleCount,
-          cursorClassName: ''
+          visibleCount
         })
-        const node = document.querySelector(
-          `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
-        )
-        if (node) {
-          node.insertAdjacentHTML(
-            'beforeend',
-            '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
-          )
-        }
+        appendCursor(blockIndex)
         advance()
       }, BLOCK_DELAY)
     }
@@ -373,6 +399,10 @@ export default function ReadmeTypewriter({ enabled = true }) {
     return () => {
       cancelled = true
       if (timer) window.clearTimeout(timer)
+
+      // 离开首页时必须把被中断的逐字内容恢复完整。
+      // 返回首页后，新的 effect 会再次调用 resetForTyping() 正常重播。
+      showAll()
     }
   }, [enabled, router.pathname, router.asPath])
 

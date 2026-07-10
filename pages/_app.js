@@ -96,7 +96,7 @@ const MyApp = ({ Component, pageProps }) => {
         </GLayout>
         <ReadmeTypewriter enabled={theme === 'claude'} />
         <ClickGlassRipple enabled={theme === 'claude'} />
-        <UttoPet enabled={theme === 'claude'} />
+        <UttoPet enabled={theme === 'claude'} pageProps={pageProps} />
         <ExternalPlugins {...pageProps} />
       </GlobalContextProvider>
     </AppErrorBoundary>

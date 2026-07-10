@@ -44,7 +44,6 @@ export default function ReadmeTypewriter({ enabled = true }) {
     if (reduceMotion) return undefined
 
     let observer
-    let startTimer
     let typeTimer
     let cleanupAnimation = () => {}
 
@@ -81,14 +80,12 @@ export default function ReadmeTypewriter({ enabled = true }) {
         entry.node.nodeValue = ''
       })
 
-      // README 内容较短，固定使用更舒适的打字速度，避免一闪而过。
       const characterDelay = 92
       let nodeIndex = 0
       let characterIndex = 0
       let finished = false
 
       const restore = () => {
-        window.clearTimeout(startTimer)
         window.clearTimeout(typeTimer)
 
         entries.forEach(entry => {
@@ -114,7 +111,6 @@ export default function ReadmeTypewriter({ enabled = true }) {
           readme.removeAttribute('aria-busy')
           readme.classList.remove('claude-readme-is-typing')
           readme.style.minHeight = previousMinHeight
-          // 打字结束后保留闪烁光标，表示仍在等待输入。
           return
         }
 
@@ -142,7 +138,8 @@ export default function ReadmeTypewriter({ enabled = true }) {
         typeTimer = window.setTimeout(typeNextCharacter, characterDelay)
       }
 
-      startTimer = window.setTimeout(typeNextCharacter, 500)
+      // README 节点出现后立即输出第一个字符，不再额外空等半秒。
+      typeNextCharacter()
 
       cleanupAnimation = () => {
         if (!finished) restore()

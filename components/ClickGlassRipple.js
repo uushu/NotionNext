@@ -1,12 +1,16 @@
 import { useEffect } from 'react'
 
-const RIPPLE_DURATION = 780
+const EFFECT_DURATION = 620
 const CLICK_MOVE_TOLERANCE = 12
+const SPARK_OFFSETS = [
+  [-16, -11],
+  [15, -13],
+  [18, 9]
+]
 
 /**
- * 全站点击水波纹。
- * 使用原生 DOM 创建动画节点，不触发 React 重渲染；
- * 拖动和页面滚动不会生成波纹，并尊重系统的“减少动态效果”设置。
+ * Claude 主题点击反馈。
+ * 使用暖色纸张晕染与细小光点，避免原先偏蓝、偏 iOS 玻璃质感的突兀效果。
  */
 export default function ClickGlassRipple({ enabled = true }) {
   useEffect(() => {
@@ -19,26 +23,36 @@ export default function ClickGlassRipple({ enabled = true }) {
 
     let pointerStart = null
 
-    const createRipple = (x, y) => {
-      const ripple = document.createElement('span')
-      ripple.className = 'claude-glass-ripple'
-      ripple.setAttribute('aria-hidden', 'true')
-      ripple.style.setProperty('--claude-ripple-x', `${x}px`)
-      ripple.style.setProperty('--claude-ripple-y', `${y}px`)
+    const createEffect = (x, y) => {
+      const effect = document.createElement('span')
+      effect.className = 'claude-paper-click'
+      effect.setAttribute('aria-hidden', 'true')
+      effect.style.setProperty('--claude-click-x', `${x}px`)
+      effect.style.setProperty('--claude-click-y', `${y}px`)
 
-      document.body.appendChild(ripple)
+      SPARK_OFFSETS.forEach(([offsetX, offsetY], index) => {
+        const spark = document.createElement('i')
+        spark.className = 'claude-paper-click__spark'
+        spark.style.setProperty('--spark-x', `${offsetX}px`)
+        spark.style.setProperty('--spark-y', `${offsetY}px`)
+        spark.style.setProperty('--spark-delay', `${index * 34}ms`)
+        effect.appendChild(spark)
+      })
 
-      const removeRipple = () => ripple.remove()
+      document.body.appendChild(effect)
+
+      const removeEffect = () => effect.remove()
       const fallbackTimer = window.setTimeout(
-        removeRipple,
-        RIPPLE_DURATION + 120
+        removeEffect,
+        EFFECT_DURATION + 140
       )
 
-      ripple.addEventListener(
+      effect.addEventListener(
         'animationend',
-        () => {
+        event => {
+          if (event.target !== effect) return
           window.clearTimeout(fallbackTimer)
-          removeRipple()
+          removeEffect()
         },
         { once: true }
       )
@@ -51,7 +65,8 @@ export default function ClickGlassRipple({ enabled = true }) {
       pointerStart = {
         pointerId: event.pointerId,
         x: event.clientX,
-        y: event.clientY
+        y: event.clientY,
+        target: event.target
       }
     }
 
@@ -62,12 +77,13 @@ export default function ClickGlassRipple({ enabled = true }) {
         event.clientX - pointerStart.x,
         event.clientY - pointerStart.y
       )
+      const target = pointerStart.target
       pointerStart = null
 
-      // 过滤拖动、选择文本以及移动端滚动手势。
       if (distance > CLICK_MOVE_TOLERANCE) return
+      if (target instanceof Element && target.closest('.utto-pet')) return
 
-      createRipple(event.clientX, event.clientY)
+      createEffect(event.clientX, event.clientY)
     }
 
     const handlePointerCancel = () => {
@@ -87,7 +103,7 @@ export default function ClickGlassRipple({ enabled = true }) {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('pointerup', handlePointerUp)
       document.removeEventListener('pointercancel', handlePointerCancel)
-      document.querySelectorAll('.claude-glass-ripple').forEach(node => {
+      document.querySelectorAll('.claude-paper-click').forEach(node => {
         node.remove()
       })
     }
@@ -95,139 +111,141 @@ export default function ClickGlassRipple({ enabled = true }) {
 
   return (
     <style jsx global>{`
-      .claude-glass-ripple {
+      .claude-paper-click {
         position: fixed;
-        left: var(--claude-ripple-x);
-        top: var(--claude-ripple-y);
-        width: 82px;
-        height: 82px;
+        left: var(--claude-click-x);
+        top: var(--claude-click-y);
+        width: 54px;
+        height: 54px;
         z-index: 2147483646;
         pointer-events: none;
-        border: 1px solid rgba(126, 176, 222, 0.52);
+        border: 1px solid rgba(169, 119, 79, 0.38);
         border-radius: 999px;
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.16);
+        transform: translate(-50%, -50%) scale(0.22);
         background: radial-gradient(
-          circle at 34% 28%,
-          rgba(255, 255, 255, 0.7) 0%,
-          rgba(255, 255, 255, 0.34) 12%,
-          rgba(191, 224, 255, 0.2) 34%,
-          rgba(148, 199, 238, 0.08) 54%,
-          rgba(255, 255, 255, 0) 72%
+          circle,
+          rgba(255, 250, 244, 0.7) 0%,
+          rgba(226, 193, 158, 0.2) 35%,
+          rgba(196, 148, 105, 0.06) 58%,
+          rgba(196, 148, 105, 0) 74%
         );
         box-shadow:
-          0 0 0 1px rgba(255, 255, 255, 0.42),
-          0 10px 28px rgba(77, 133, 184, 0.2),
-          inset 0 1px 1px rgba(255, 255, 255, 0.9),
-          inset 0 -12px 24px rgba(107, 173, 224, 0.12);
-        backdrop-filter: blur(2px) saturate(145%);
-        -webkit-backdrop-filter: blur(2px) saturate(145%);
-        animation: claude-glass-ripple-expand ${RIPPLE_DURATION}ms
-          cubic-bezier(0.16, 0.72, 0.26, 1) forwards;
+          0 0 0 1px rgba(255, 255, 255, 0.44),
+          0 8px 22px rgba(107, 75, 49, 0.1);
+        animation: claude-paper-click-expand ${EFFECT_DURATION}ms
+          cubic-bezier(0.2, 0.72, 0.24, 1) forwards;
         will-change: transform, opacity;
       }
 
-      .claude-glass-ripple::before,
-      .claude-glass-ripple::after {
+      .claude-paper-click::before {
         position: absolute;
+        inset: 8px;
         content: '';
-        pointer-events: none;
+        border: 1px solid rgba(185, 132, 89, 0.3);
         border-radius: inherit;
-      }
-
-      .claude-glass-ripple::before {
-        inset: -1px;
-        border: 1px solid rgba(116, 170, 217, 0.58);
-        box-shadow:
-          0 0 14px rgba(118, 183, 235, 0.2),
-          inset 0 0 12px rgba(255, 255, 255, 0.26);
-        animation: claude-glass-ripple-ring ${RIPPLE_DURATION}ms
-          cubic-bezier(0.18, 0.7, 0.24, 1) forwards;
-      }
-
-      .claude-glass-ripple::after {
-        left: 50%;
-        top: 50%;
-        width: 16px;
-        height: 16px;
-        transform: translate(-50%, -50%) scale(0.45);
-        background: radial-gradient(
-          circle at 35% 30%,
-          rgba(255, 255, 255, 0.94),
-          rgba(173, 218, 250, 0.4) 48%,
-          rgba(102, 169, 220, 0.06) 74%
-        );
-        box-shadow:
-          0 0 10px rgba(255, 255, 255, 0.72),
-          0 0 22px rgba(93, 169, 225, 0.3);
-        animation: claude-glass-ripple-core ${RIPPLE_DURATION}ms ease-out
+        animation: claude-paper-click-inner ${EFFECT_DURATION}ms ease-out
           forwards;
       }
 
-      @keyframes claude-glass-ripple-expand {
+      .claude-paper-click__spark {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 4px;
+        height: 4px;
+        margin: -2px 0 0 -2px;
+        border-radius: 999px;
+        background: rgba(176, 116, 68, 0.72);
+        box-shadow: 0 0 7px rgba(198, 143, 91, 0.28);
+        opacity: 0;
+        transform: translate(0, 0) scale(0.5);
+        animation: claude-paper-click-spark 430ms ease-out
+          var(--spark-delay) forwards;
+      }
+
+      @keyframes claude-paper-click-expand {
         0% {
           opacity: 0;
-          transform: translate(-50%, -50%) scale(0.16);
+          transform: translate(-50%, -50%) scale(0.22);
         }
-        14% {
-          opacity: 0.96;
+        18% {
+          opacity: 0.8;
         }
-        58% {
-          opacity: 0.5;
+        62% {
+          opacity: 0.36;
         }
         100% {
           opacity: 0;
-          transform: translate(-50%, -50%) scale(1.58);
+          transform: translate(-50%, -50%) scale(1.42);
         }
       }
 
-      @keyframes claude-glass-ripple-ring {
+      @keyframes claude-paper-click-inner {
         0% {
-          opacity: 0.92;
-          transform: scale(0.68);
+          opacity: 0.68;
+          transform: scale(0.62);
         }
         100% {
           opacity: 0;
-          transform: scale(1.24);
+          transform: scale(1.22);
         }
       }
 
-      @keyframes claude-glass-ripple-core {
+      @keyframes claude-paper-click-spark {
         0% {
-          opacity: 0.95;
-          transform: translate(-50%, -50%) scale(0.45);
+          opacity: 0;
+          transform: translate(0, 0) scale(0.5);
         }
-        45% {
-          opacity: 0.66;
-          transform: translate(-50%, -50%) scale(1);
+        24% {
+          opacity: 0.72;
         }
         100% {
           opacity: 0;
-          transform: translate(-50%, -50%) scale(1.8);
+          transform: translate(var(--spark-x), var(--spark-y)) scale(1);
         }
       }
 
-      html.dark .claude-glass-ripple,
-      .dark .claude-glass-ripple,
-      [data-theme='dark'] .claude-glass-ripple {
-        border-color: rgba(157, 205, 242, 0.56);
+      html.dark .claude-paper-click,
+      .dark .claude-paper-click,
+      [data-theme='dark'] .claude-paper-click {
+        border-color: rgba(229, 190, 150, 0.42);
         background: radial-gradient(
-          circle at 34% 28%,
-          rgba(255, 255, 255, 0.48) 0%,
-          rgba(207, 233, 255, 0.22) 14%,
-          rgba(106, 173, 224, 0.14) 38%,
-          rgba(50, 104, 151, 0.06) 58%,
-          rgba(255, 255, 255, 0) 74%
+          circle,
+          rgba(255, 244, 232, 0.26) 0%,
+          rgba(214, 167, 121, 0.16) 36%,
+          rgba(166, 112, 73, 0.05) 60%,
+          rgba(166, 112, 73, 0) 76%
         );
         box-shadow:
-          0 0 0 1px rgba(255, 255, 255, 0.2),
-          0 10px 30px rgba(42, 111, 166, 0.26),
-          inset 0 1px 1px rgba(255, 255, 255, 0.58),
-          inset 0 -12px 24px rgba(102, 176, 230, 0.12);
+          0 0 0 1px rgba(255, 239, 223, 0.12),
+          0 8px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      html.dark .claude-paper-click__spark,
+      .dark .claude-paper-click__spark,
+      [data-theme='dark'] .claude-paper-click__spark {
+        background: rgba(237, 193, 149, 0.78);
+      }
+
+      /* 灵宠单击反馈文案 */
+      .utto-pet[data-state='interact'] .utto-pet__bubble {
+        font-size: 0;
+      }
+
+      .utto-pet[data-state='interact'] .utto-pet__bubble::after {
+        content: '真棒！';
+        font-size: 13px;
+      }
+
+      @media (max-width: 768px) {
+        .utto-pet[data-state='interact'] .utto-pet__bubble::after {
+          font-size: 12px;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .claude-glass-ripple {
+        .claude-paper-click {
           display: none !important;
           animation: none !important;
         }

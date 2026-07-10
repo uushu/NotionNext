@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 
 const CURSOR_FINISH_DURATION = 2400
+const PREPARED_MARKER = 'data-claude-readme-prepared'
 
 const decodeHtmlEntities = value => {
   if (!value) return ''
@@ -16,6 +17,15 @@ const decodeHtmlEntities = value => {
     .replace(/&#x([0-9a-f]+);/gi, (_, code) =>
       String.fromCodePoint(Number.parseInt(code, 16))
     )
+}
+
+const escapeHtml = value => {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 const getClassName = attributes => {
@@ -75,6 +85,8 @@ const parseReadmeBlocks = html => {
   return blocks.sort((a, b) => a.index - b.index)
 }
 
+const splitGraphemesForServer = text => Array.from(text || '')
+
 const serializeBlocks = blocks => {
   return JSON.stringify(blocks)
     .replace(/</g, '\\u003c')
@@ -84,144 +96,124 @@ const serializeBlocks = blocks => {
     .replace(/\u2029/g, '\\u2029')
 }
 
-const createBootstrapScript = blocks => `
-;(function () {
-  var blocks = ${serializeBlocks(blocks)}
-  var finishDuration = ${CURSOR_FINISH_DURATION}
+function startPreparedReadmeTypewriter() {
+  const finishDuration = 2400
 
-  var splitGraphemes = function (text) {
+  const splitGraphemes = text => {
     if (window.Intl && typeof window.Intl.Segmenter === 'function') {
-      var segmenter = new window.Intl.Segmenter('zh-CN', { granularity: 'grapheme' })
-      return Array.from(segmenter.segment(text), function (segment) {
-        return segment.segment
+      const segmenter = new window.Intl.Segmenter('zh-CN', {
+        granularity: 'grapheme'
       })
+      return Array.from(segmenter.segment(text), segment => segment.segment)
     }
     return Array.from(text)
   }
 
-  var getDelay = function (character) {
+  const getDelay = character => {
     if (/[。！？!?]/.test(character)) return 220
     if (/[，、：；,;:]/.test(character)) return 140
     if (/[…—]/.test(character)) return 170
-    if (/\\s/.test(character)) return 35
+    if (/\s/.test(character)) return 35
     return 55 + Math.round(Math.random() * 30)
   }
 
-  var start = function (nextBlocks) {
-    if (window.location.pathname !== '/') return
-    if (!nextBlocks || !nextBlocks.length) return
+  const revealOriginal = shell => {
+    const original = shell.querySelector('.claude-readme-typewriter-original')
+    const animation = shell.querySelector('.claude-readme-animation-surface')
+
+    if (animation) animation.style.visibility = 'hidden'
+    if (original) {
+      original.style.visibility = 'visible'
+      original.style.pointerEvents = 'auto'
+      original.removeAttribute('aria-hidden')
+    }
+    shell.dataset.claudeReadmeState = 'done'
+  }
+
+  const startShell = shell => {
+    if (!shell || shell.dataset.claudeReadmeState !== 'idle') return
+
     if (
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ) {
+      revealOriginal(shell)
       return
     }
 
-    var card = document.querySelector('#theme-claude .claude-readme-card')
-    var original = card && card.querySelector(':scope > .markdown-body')
-    if (!card || !original) return
-    if (card.dataset.claudeReadmePreparsedStarted === 'true') return
+    const dataNode = shell.querySelector('[data-claude-readme-blocks]')
+    const original = shell.querySelector('.claude-readme-typewriter-original')
+    const animation = shell.querySelector('.claude-readme-animation-surface')
+    const visibleNodes = Array.from(
+      shell.querySelectorAll('[data-claude-readme-visible]')
+    )
 
-    card.dataset.claudeReadmePreparsedStarted = 'true'
+    let blocks = []
+    try {
+      blocks = JSON.parse(dataNode?.textContent || '[]')
+    } catch (error) {
+      revealOriginal(shell)
+      return
+    }
 
-    var shell = document.createElement('div')
-    shell.className = 'claude-readme-typewriter-shell'
-    original.parentNode.insertBefore(shell, original)
-    shell.appendChild(original)
+    if (!original || !animation || !blocks.length || !visibleNodes.length) {
+      revealOriginal(shell)
+      return
+    }
 
-    original.classList.add('claude-readme-typewriter-original')
+    const blockStates = blocks.map((block, index) => ({
+      characters: splitGraphemes(block.text),
+      visible: visibleNodes[index]
+    }))
+
+    if (!blockStates[0]?.characters.length) {
+      revealOriginal(shell)
+      return
+    }
+
+    shell.dataset.claudeReadmeState = 'typing'
+
     original.style.visibility = 'hidden'
     original.style.pointerEvents = 'none'
     original.setAttribute('aria-hidden', 'true')
+    animation.style.visibility = 'visible'
 
-    var animation = document.createElement('div')
-    animation.className = 'markdown-body claude-readme-animation-surface'
-    animation.setAttribute('aria-hidden', 'true')
-
-    var notionRoot = document.createElement('div')
-    notionRoot.className = 'claude-readme-notion'
-    var main = document.createElement('main')
-    main.className = 'notion light-mode notion-page'
-    notionRoot.appendChild(main)
-    animation.appendChild(notionRoot)
-    shell.appendChild(animation)
-
-    var cursor = document.createElement('span')
+    const cursor = document.createElement('span')
     cursor.className = 'claude-readme-block-cursor'
     cursor.setAttribute('aria-hidden', 'true')
 
-    var blockStates = nextBlocks.map(function (block, index) {
-      var element = document.createElement(block.tag)
-      element.className = block.className + ' claude-readme-animated-block'
-
-      var grid = document.createElement('span')
-      grid.className = 'claude-readme-block-grid'
-
-      var placeholder = document.createElement('span')
-      placeholder.className = 'claude-readme-block-placeholder'
-      placeholder.setAttribute('aria-hidden', 'true')
-      placeholder.textContent = block.text
-
-      var visible = document.createElement('span')
-      visible.className = 'claude-readme-block-visible'
-      visible.setAttribute('aria-hidden', 'true')
-
-      var characters = splitGraphemes(block.text)
-      if (index === 0 && characters.length) {
-        visible.textContent = characters[0]
-      }
-
-      grid.appendChild(placeholder)
-      grid.appendChild(visible)
-      element.appendChild(grid)
-      main.appendChild(element)
-
-      return {
-        characters: characters,
-        visible: visible
-      }
+    blockStates.forEach((state, index) => {
+      state.visible.textContent = index === 0 ? state.characters[0] : ''
     })
-
-    if (!blockStates.length || !blockStates[0].characters.length) {
-      animation.remove()
-      original.style.visibility = ''
-      original.style.pointerEvents = ''
-      original.removeAttribute('aria-hidden')
-      return
-    }
-
-    var blockIndex = 0
-    var characterCount = 1
-    var timer
-    var finishTimer
-
     blockStates[0].visible.appendChild(cursor)
 
-    var finish = function () {
+    let blockIndex = 0
+    let characterCount = 1
+    let timer
+    let finishTimer
+
+    const finish = () => {
+      shell.dataset.claudeReadmeState = 'finished'
       cursor.classList.add('is-finished')
-      finishTimer = window.setTimeout(function () {
-        if (!card.isConnected) return
+      finishTimer = window.setTimeout(() => {
+        if (!shell.isConnected) return
         cursor.remove()
-        animation.style.visibility = 'hidden'
-        original.style.visibility = ''
-        original.style.pointerEvents = ''
-        original.removeAttribute('aria-hidden')
-        shell.classList.add('is-done')
+        revealOriginal(shell)
       }, finishDuration)
     }
 
-    var typeNext = function () {
-      if (!card.isConnected) {
+    const typeNext = () => {
+      if (!shell.isConnected) {
         window.clearTimeout(timer)
         window.clearTimeout(finishTimer)
         return
       }
 
-      var state = blockStates[blockIndex]
-      var characters = state.characters
+      let state = blockStates[blockIndex]
+      let characters = state.characters
 
       if (characterCount < characters.length) {
-        var previousCharacter = characters[characterCount - 1] || ''
+        const previousCharacter = characters[characterCount - 1] || ''
         characterCount += 1
         state.visible.textContent = characters.slice(0, characterCount).join('')
         state.visible.appendChild(cursor)
@@ -230,7 +222,7 @@ const createBootstrapScript = blocks => `
       }
 
       if (blockIndex < blockStates.length - 1) {
-        var lastCharacter = characters[characters.length - 1] || ''
+        const lastCharacter = characters[characters.length - 1] || ''
         blockIndex += 1
         state = blockStates[blockIndex]
         characters = state.characters
@@ -250,111 +242,126 @@ const createBootstrapScript = blocks => `
     )
   }
 
-  window.__startClaudeReadmePreparsedTypewriter = start
-  start(blocks)
-})()
-`
+  document
+    .querySelectorAll('[data-claude-readme-prepared]')
+    .forEach(startShell)
+}
+
+const createAnimationBlocksHtml = blocks => {
+  return blocks
+    .map((block, index) => {
+      const characters = splitGraphemesForServer(block.text)
+      const firstCharacter = index === 0 ? characters[0] || '' : ''
+      const className = `${block.className} claude-readme-animated-block`.trim()
+
+      return `<${block.tag} class="${escapeHtml(className)}"><span class="claude-readme-block-grid"><span class="claude-readme-block-placeholder" aria-hidden="true">${escapeHtml(block.text)}</span><span class="claude-readme-block-visible" data-claude-readme-visible aria-hidden="true">${escapeHtml(firstCharacter)}${index === 0 ? '<span class="claude-readme-block-cursor" aria-hidden="true"></span>' : ''}</span></span></${block.tag}>`
+    })
+    .join('')
+}
 
 /**
- * README 全文预解析打字动画。
- *
- * 文本块在服务端从 readmeHtml 提取，并在 HTML 解析阶段建立独立动画层。
- * 不等待 React hydration，不遍历、清空或克隆 Notion 正文。
+ * 把 README 原始 HTML 转换成服务端可直接输出的全文打字机结构。
+ * 动画层和第一个字符已经位于首屏 HTML 中，不依赖 hydration 后的 DOM 重建。
  */
-export default function ReadmeTypewriter({
-  enabled = true,
-  readmeHtml = '',
-  html = ''
-}) {
-  const sourceHtml = readmeHtml || html
-  const blocks = useMemo(() => parseReadmeBlocks(sourceHtml), [sourceHtml])
+export const prepareReadmeTypewriterHtml = html => {
+  if (!html || typeof html !== 'string' || html.includes(PREPARED_MARKER)) {
+    return html
+  }
 
+  const blocks = parseReadmeBlocks(html)
+  if (!blocks.length) return html
+
+  const blocksJson = serializeBlocks(blocks)
+  const animationBlocksHtml = createAnimationBlocksHtml(blocks)
+  const bootstrap = `window.__startClaudeReadmePreparedTypewriter=${startPreparedReadmeTypewriter.toString()};window.__startClaudeReadmePreparedTypewriter();`
+
+  return `<div class="claude-readme-typewriter-shell" data-claude-readme-prepared data-claude-readme-state="idle"><div class="claude-readme-typewriter-original" aria-hidden="true" style="visibility:hidden;pointer-events:none">${html}</div><div class="claude-readme-animation-surface claude-readme-notion" aria-hidden="true"><main class="notion light-mode notion-page">${animationBlocksHtml}</main></div><script type="application/json" data-claude-readme-blocks>${blocksJson}</script><script>${bootstrap}</script><noscript><style>.claude-readme-typewriter-original{visibility:visible!important;pointer-events:auto!important}.claude-readme-animation-surface{display:none!important}</style></noscript></div>`
+}
+
+/**
+ * 提供共享样式，并在客户端路由进入首页时启动已经服务端渲染的动画结构。
+ */
+export default function ReadmeTypewriter({ enabled = true }) {
   useEffect(() => {
-    if (!enabled || !blocks.length) return
-    window.__startClaudeReadmePreparsedTypewriter?.(blocks)
-  }, [blocks, enabled])
+    if (!enabled) return
+    window.__startClaudeReadmePreparedTypewriter = startPreparedReadmeTypewriter
+    startPreparedReadmeTypewriter()
+  }, [enabled])
 
-  if (!enabled || !blocks.length) return null
+  if (!enabled) return null
 
   return (
-    <>
-      <script
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: createBootstrapScript(blocks) }}
-      />
+    <style jsx global>{`
+      .claude-readme-typewriter-shell {
+        position: relative;
+        width: 100%;
+        overflow-anchor: none;
+      }
 
-      <style jsx global>{`
-        .claude-readme-typewriter-shell {
-          position: relative;
-          width: 100%;
-          overflow-anchor: none;
+      .claude-readme-animation-surface {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        pointer-events: none;
+      }
+
+      .claude-readme-block-grid {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .claude-readme-block-placeholder,
+      .claude-readme-block-visible {
+        grid-area: 1 / 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .claude-readme-block-placeholder {
+        visibility: hidden;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .claude-readme-block-cursor {
+        display: inline-block;
+        width: 2px;
+        height: 0.95em;
+        margin-left: 4px;
+        vertical-align: -0.08em;
+        background: currentColor;
+        animation: claude-readme-block-cursor-blink 0.8s steps(1, end)
+          infinite;
+      }
+
+      .claude-readme-block-cursor.is-finished {
+        animation-iteration-count: 3;
+      }
+
+      @keyframes claude-readme-block-cursor-blink {
+        0%,
+        48% {
+          opacity: 1;
+        }
+        49%,
+        100% {
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .claude-readme-typewriter-original {
+          visibility: visible !important;
+          pointer-events: auto !important;
         }
 
         .claude-readme-animation-surface {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          margin: 0;
-          pointer-events: none;
+          display: none !important;
         }
-
-        .claude-readme-block-grid {
-          display: grid;
-          width: 100%;
-          min-width: 0;
-        }
-
-        .claude-readme-block-placeholder,
-        .claude-readme-block-visible {
-          grid-area: 1 / 1;
-          min-width: 0;
-          overflow-wrap: anywhere;
-        }
-
-        .claude-readme-block-placeholder {
-          visibility: hidden;
-          pointer-events: none;
-          user-select: none;
-        }
-
-        .claude-readme-block-cursor {
-          display: inline-block;
-          width: 2px;
-          height: 0.95em;
-          margin-left: 4px;
-          vertical-align: -0.08em;
-          background: currentColor;
-          animation: claude-readme-block-cursor-blink 0.8s steps(1, end)
-            infinite;
-        }
-
-        .claude-readme-block-cursor.is-finished {
-          animation-iteration-count: 3;
-        }
-
-        @keyframes claude-readme-block-cursor-blink {
-          0%,
-          48% {
-            opacity: 1;
-          }
-          49%,
-          100% {
-            opacity: 0;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .claude-readme-typewriter-original {
-            visibility: visible !important;
-            pointer-events: auto !important;
-          }
-
-          .claude-readme-animation-surface {
-            display: none !important;
-          }
-        }
-      `}</style>
-    </>
+      }
+    `}</style>
   )
 }

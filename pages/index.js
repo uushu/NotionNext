@@ -10,6 +10,7 @@ import { generateRobotsTxt } from '@/lib/utils/robots.txt'
 import { generateRss, shouldGenerateRssForLocale } from '@/lib/utils/rss'
 import { generateSitemapXml } from '@/lib/utils/sitemap.xml'
 import { DynamicLayout } from '@/themes/theme'
+import ClaudeProfileHome from '@/themes/claude/components/ProfileHome'
 import { generateRedirectJson } from '@/lib/utils/redirect'
 import { checkDataFromAlgolia } from '@/lib/plugins/algolia'
 import pLimit from 'p-limit'
@@ -86,6 +87,13 @@ async function getClaudeReadmePage(allPages) {
  */
 const Index = props => {
   const theme = siteConfig('THEME', BLOG.THEME, props.NOTION_CONFIG)
+  const primaryTheme = theme?.split(',')[0]?.trim()
+
+  // 当前生产首页直接渲染 Claude 组件，避免动态主题包加载期间显示空壳。
+  if (primaryTheme === 'claude') {
+    return <ClaudeProfileHome {...props} />
+  }
+
   return <DynamicLayout theme={theme} layoutName='LayoutIndex' {...props} />
 }
 

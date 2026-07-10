@@ -100,6 +100,7 @@ const MyApp = ({ Component, pageProps }) => {
           <SEO {...pageProps} />
           <Component {...pageProps} />
         </GLayout>
+        {/* Keep the proven isolated-title implementation for this preview. */}
         <ReadmeTypewriter
           enabled={theme === 'claude'}
           readmeHtml={pageProps?.readmePage?.readmeHtml}

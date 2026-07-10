@@ -18,6 +18,7 @@ import ErrorHandler from '@/lib/utils/errorHandler'
 
 // 各种扩展插件 这个要阻塞引入
 import BLOG from '@/blog.config'
+import { LayoutBase as ClaudeLayoutBase } from '@/themes/claude'
 import ClickGlassRipple from '@/components/ClickGlassRipple'
 import ExternalPlugins from '@/components/ExternalPlugins'
 import ReadmeTypewriter from '@/components/ReadmeTypewriter'
@@ -80,6 +81,11 @@ const MyApp = ({ Component, pageProps }) => {
   // 整体布局
   const GLayout = useCallback(
     props => {
+      // Claude 是当前生产主题，直接打进首屏包，避免等待动态主题模块。
+      if (theme?.split(',')[0]?.trim() === 'claude') {
+        return <ClaudeLayoutBase {...props} />
+      }
+
       const Layout = getBaseLayoutByTheme(theme)
       return <Layout {...props} />
     },

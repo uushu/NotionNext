@@ -1,5 +1,7 @@
 import BLOG from '@/blog.config'
+import contributionLedger from '@/data/contribution-events.json'
 import { siteConfig } from '@/lib/config'
+import { buildContributionEvents } from '@/lib/contribution/buildContributionEvents'
 import {
   cleanPostSummaries,
   fetchGlobalAllData,
@@ -141,12 +143,22 @@ export async function getStaticProps(req) {
     false,
     props?.NOTION_CONFIG
   )
-  props.posts = props.allPages?.filter(
-    page => page.type === 'Post' && page.status === 'Published'
-  )
+
+  const publishedPosts =
+    props.allPages?.filter(
+      page => page.type === 'Post' && page.status === 'Published'
+    ) || []
+
+  props.posts = publishedPosts
 
   if (resolvedTheme === 'claude') {
     props.readmePage = await getClaudeReadmePage(props.allPages)
+    // 必须在首页分页前生成，确保贡献图覆盖全部 Published 文章。
+    // 历史更新仅来自追加式账本，不再使用会被覆盖的 lastEditedDate。
+    props.contributionEvents = buildContributionEvents({
+      posts: publishedPosts,
+      ledgerEvents: contributionLedger.events
+    })
   }
 
   // 处理分页
@@ -169,13 +181,17 @@ export async function getStaticProps(req) {
     const previewLimit = pLimit(
       siteConfig('POST_PREVIEW_CONCURRENCY', 5, props?.NOTION_CONFIG)
     )
-    const previewTargets = props.posts.filter(
-      post => !post.password || post.password === ''
-    ).slice(0, POST_PREVIEW_MAX_COUNT)
+    const previewTargets = props.posts
+      .filter(post => !post.password || post.password === '')
+      .slice(0, POST_PREVIEW_MAX_COUNT)
     await Promise.all(
       previewTargets.map(post =>
         previewLimit(async () => {
-          const rawBlockMap = await getPostBlocks(post.id, 'slug', POST_PREVIEW_LINES)
+          const rawBlockMap = await getPostBlocks(
+            post.id,
+            'slug',
+            POST_PREVIEW_LINES
+          )
           post.blockMap = adapterNotionBlockMap(rawBlockMap)
           if (post.blockMap?.block) {
             post.blockMap.block = formatNotionBlock(post.blockMap.block)
@@ -199,7 +215,6 @@ export async function getStaticProps(req) {
     // 检查数据是否需要从algolia删除
     await checkDataFromAlgolia(props)
     if (siteConfig('UUID_REDIRECT', false, props?.NOTION_CONFIG)) {
-      // 生成重定向 JSON
       generateRedirectJson(props)
     }
   }

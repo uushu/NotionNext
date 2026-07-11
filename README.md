@@ -1,194 +1,153 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/c111204d-2016-4343-92e4-83357cac4b19" width="96" height="96" alt="NotionNext Logo" />
+# utto兔子的学习屋
 
-# NotionNext
+一个基于 **NotionNext + Notion + Vercel** 搭建的长期个人博客。
 
-用 Notion 搭建自己的独立站
+记录游戏开发、编程学习、课程复习、项目实践、实习成长和日常内容。
 
-继续在 Notion 写作，一键发布为博客、作品集、知识库、导航站或产品官网。
-
-<p>
-  <a href="https://preview.tangly1024.com/">在线预览</a>
-  ·
-  <a href="https://notionnext.tangly1024.com/user-guide/start-here">开始搭建</a>
-  ·
-  <a href="https://notionnext.tangly1024.com/user-guide/themes/THEMES_CATALOG">主题全览</a>
-  ·
-  <a href="https://notionnext.tangly1024.com/">文档站</a>
-  ·
-  <a href="https://github.com/notionnext-org/NotionNext/discussions">讨论区</a>
-</p>
-
-<p>
-  <a aria-label="GitHub commit activity" href="https://github.com/notionnext-org/NotionNext/commits/main" title="GitHub commit activity">
-    <img src="https://img.shields.io/github/commit-activity/m/notionnext-org/NotionNext?style=for-the-badge"/>
-  </a>
-  <a aria-label="GitHub contributors" href="https://github.com/notionnext-org/NotionNext/graphs/contributors" title="GitHub contributors">
-    <img src="https://img.shields.io/github/contributors/notionnext-org/NotionNext?color=orange&style=for-the-badge"/>
-  </a>
-  <a aria-label="Build status" href="#" title="Build status">
-    <img src="https://img.shields.io/github/deployments/notionnext-org/NotionNext/Production?logo=Vercel&style=for-the-badge"/>
-  </a>
-  <a aria-label="Powered by Vercel" href="https://vercel.com?utm_source=Craigary&utm_campaign=oss" title="Powered by Vercel">
-    <img src="https://www.datocms-assets.com/31049/1618983297-powered-by-vercel.svg" height="28"/>
-  </a>
-</p>
-
-中文 | [English](./README_EN.md)
+[访问博客](https://notion-next-btu6.vercel.app) · [查看上游项目](https://github.com/notionnext-org/NotionNext)
 
 </div>
 
 ---
 
-## NotionNext 是什么？
+## 项目定位
 
-NotionNext 是一个基于 **Next.js + Notion API** 的开源站点系统。你继续用 Notion 管理文章、分类、标签、菜单和页面，NotionNext 负责把这些内容发布成可访问、可搜索、可运营的独立网站。
+“utto兔子的学习屋”不是虚构角色博客，而是作者 `utto` 的长期公开学习档案。
 
-它适合想长期沉淀内容的人：内容创作者、独立开发者、设计师、摄影师、课程作者、开源项目维护者，以及需要快速搭建产品官网或知识库的小团队。
+Utto 兔子作为博客视觉形象，保留白色软团状身体、头身一体、短粗耳朵、暖棕手绘描边、淡粉腮红、圆点眼睛和双圆嘴，用于灵宠、404 页面和站点视觉统一。
 
-## 你可以用它做什么？
+内容按以下分类长期整理：
 
-| 目标 | 推荐入口 | 适合人群 |
-| --- | --- | --- |
-| 搭个人博客 | [从这里开始](https://notionnext.tangly1024.com/user-guide/start-here) | 内容创作者、独立开发者、学生 |
-| 做作品集或个人品牌站 | [按场景选主题](https://notionnext.tangly1024.com/user-guide/themes/THEMES_CATALOG#按场景选主题) | 设计师、摄影师、自由职业者 |
-| 做产品官网或 SaaS 落地页 | [Starter / Landing / Proxio](https://notionnext.tangly1024.com/user-guide/themes/THEMES_CATALOG#按场景选主题) | 创业者、独立产品、小团队 |
-| 做知识库或文档站 | [GitBook / Claude](https://notionnext.tangly1024.com/user-guide/themes/THEMES_CATALOG#按场景选主题) | 开源项目、课程作者、团队文档 |
-| 做导航站或资源聚合 | [Nav 主题](https://notionnext.tangly1024.com/user-guide/themes/nav) | 资源整理者、社群运营者 |
+- 开发记录
+- 学习笔记
+- 期末速通
+- 技术分享
+- 日常记录
 
-## 为什么选择 NotionNext？
+## 技术架构
 
-- **不换写作工具**：文章、分类、标签、封面、菜单仍在 Notion 中维护。
-- **上线路径短**：复制 Notion 模板、Fork 仓库、连接 Vercel，即可部署。
-- **主题选择多**：内置 25 个主题，覆盖博客、文档、作品集、官网、相册、导航站等场景。
-- **适合长期运营**：支持独立域名、SEO、Sitemap、RSS、评论、统计、搜索、广告和邮件订阅。
-- **开源可控**：源码、配置和主题都在自己的仓库里，后续可以继续二次开发。
-- **数据链路清晰**：Notion 负责内容沉淀，站点负责展示和分发，后续可迁移到 Markdown 或其他系统。
-
-## 20 分钟部署路线
-
-1. 打开 [主题预览站](https://preview.tangly1024.com/) 看最终效果。
-2. 复制 NotionNext 官方 Notion 模板。
-3. Fork 本仓库到自己的 GitHub 账号。
-4. 使用 [Vercel 部署 NotionNext](https://notionnext.tangly1024.com/user-guide/deploy-vercel)。
-5. 在环境变量中填写 Notion 页面 ID 等配置。
-6. 部署成功后，按场景选择主题并补齐域名、评论、统计、搜索等功能。
-
-新手建议直接从文档站的 [从这里开始](https://notionnext.tangly1024.com/user-guide/start-here) 阅读。
-
-## 主题与预览
-
-- 在线切换主题：[preview.tangly1024.com](https://preview.tangly1024.com/)
-- 25 个内置主题：[主题全览](https://notionnext.tangly1024.com/user-guide/themes/THEMES_CATALOG)
-- 仓库内主题文档：[docs/user-guide/themes/](./docs/user-guide/themes/)
-
-| 场景 | 优先看 |
+| 模块 | 方案 |
 | --- | --- |
-| 个人博客 | `simple`、`hexo`、`nobelium`、`typography` |
-| 文档 / 知识库 | `gitbook`、`claude`、`thoughtlite` |
-| 作品集 / 个人品牌 | `proxio`、`starter`、`landing` |
-| 产品官网 | `starter`、`landing`、`commerce` |
-| 图片 / 摄影 | `photo`、`plog`、`magzine` |
-| 导航站 | `nav` |
+| 内容后台 | Notion |
+| 前端框架 | NotionNext / Next.js |
+| 当前主题 | Claude |
+| 代码与静态素材 | GitHub |
+| 预览与生产部署 | Vercel |
+| 正式分支 | `main` |
+| 长期开发分支 | `v1` |
+
+## 当前功能
+
+- Claude 主题首页与博客品牌信息
+- Notion README 页面渲染与打字机效果
+- 分类、标签卡片样式
+- 文章页返回所属分类导航
+- 自定义 favicon
+- 自定义 Utto 404 页面
+- Claude 风格暖色点击反馈
+- 页面访问量展示
+- 官方文章数据驱动的热力贡献图
+- 可拖动的 Utto 灵宠
+- 灵宠首页、阅读、探索、空闲、休息、睡眠、互动、连续点击、阅读完成和错误状态
+- 灵宠位置与折叠状态本地保存
+- GIF 构建减速与素材完整性审计
+
+## 灵宠目录
+
+```text
+components/pet/utto/   组件、配置、状态和样式
+public/pet/utto/       GIF、PNG、WebP 等静态素材
+scripts/pet/           素材审计与 GIF 处理脚本
+```
+
+灵宠状态统一由：
+
+```text
+components/pet/utto/pet.manifest.json
+```
+
+管理。
+
+`public/pet/utto/slow/` 属于构建产物，不提交到 Git。
 
 ## 本地开发
 
-推荐使用 Node 20 和 Yarn 1。
+推荐使用 Node.js 20 和 Yarn 1。
 
 ```bash
-# 1. 使用 Node 20
-nvm use || nvm install
-
-# 2. 安装 Yarn
-npm i -g yarn
-
-# 3. 安装依赖
 yarn
-
-# 4. 启动开发
 yarn dev
 ```
 
-常用命令：
-
-| 命令 | 用途 |
-| --- | --- |
-| `yarn dev` | 启动本地开发 |
-| `yarn build` | 构建生产版本 |
-| `yarn export` | 静态导出 |
-| `yarn docs:site:dev` | 本地预览文档站 |
-| `yarn docs:site:build` | 构建文档站 |
-
-## 文档入口
-
-自 2026 年起，NotionNext 使用仓库内 Markdown 文档作为主要教程来源，并发布为独立文档站。
-
-| 内容 | 链接 |
-| --- | --- |
-| 在线文档站 | [notionnext.tangly1024.com](https://notionnext.tangly1024.com) |
-| 新手入口 | [从这里开始](https://notionnext.tangly1024.com/user-guide/start-here) |
-| 配置索引 | [全站功能与配置索引](https://notionnext.tangly1024.com/user-guide/reference/features) |
-| 主题说明 | [25 个主题说明](https://notionnext.tangly1024.com/user-guide/themes/THEMES_CATALOG) |
-| 文档源码 | [docs/](./docs/) |
-| 旧版手册 | [docs.tangly1024.com](https://docs.tangly1024.com/) |
-
-## 参与社区
-
-NotionNext 主仓库由 GitHub 组织 [notionnext-org](https://github.com/notionnext-org) 维护。欢迎提交问题、补充文档、贡献主题、修复代码或参与讨论。
-
-| 内容 | 链接 |
-| --- | --- |
-| 参与社区 | [community-participate.md](./docs/user-guide/community-participate.md) |
-| 5.0 愿景与路线图 | [VISION_ROADMAP.md](./docs/developer/VISION_ROADMAP.md) |
-| 贡献指南 | [CONTRIBUTING.zh-CN.md](./CONTRIBUTING.zh-CN.md) |
-| 项目治理 | [GOVERNANCE.zh-CN.md](./GOVERNANCE.zh-CN.md) |
-| 维护者 | [MAINTAINERS.md](./MAINTAINERS.md) |
-| 行为准则 | [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) |
-| 讨论区 | [GitHub Discussions](https://github.com/notionnext-org/NotionNext/discussions) |
-
-如果你在仓库转让前已克隆旧地址，建议更新远程仓库：
+构建生产版本：
 
 ```bash
-git remote set-url origin https://github.com/notionnext-org/NotionNext.git
-git remote -v
+yarn build
 ```
 
-## 技术栈
+单独检查灵宠素材：
 
-- **框架**：[Next.js](https://nextjs.org)
-- **样式**：[Tailwind CSS](https://www.tailwindcss.cn/)
-- **渲染**：[react-notion-x](https://github.com/NotionX/react-notion-x)
-- **评论**：Twikoo、Giscus、Gitalk、Cusdis、Utterances
-- **部署**：[Vercel](https://vercel.com)
+```bash
+node scripts/pet/audit-utto-assets.js
+```
 
-## 相关项目
+生成减速 GIF：
 
-- [Elog](https://github.com/LetTTGACO/elog)：Markdown 批量导出工具，支持组合 Notion、语雀、FlowUs、飞书等写作平台与 Hexo、VitePress、Halo、WordPress 等博客平台。
+```bash
+node scripts/pet/prepare-utto-gifs.js
+```
 
-## 致谢
+## 开发与发布流程
 
-感谢 Craig Hart 发起的 Nobelium 项目。
+### 内容发布
 
-<table><tr align="left">
-  <td align="center"><a href="https://github.com/craigary" title="Craig Hart"><img src="https://avatars.githubusercontent.com/u/10571717" width="64px;" alt="Craig Hart"/></a><br/><a href="https://github.com/craigary" title="Craig Hart">Craig Hart</a></td>
-</tr></table>
+```text
+Notion Draft
+→ 检查属性与正文
+→ Published
+```
 
-感谢每一位参与代码、主题、文档、Issue、Review 与发布维护的贡献者。
+### 代码发布
 
-[![Contributors](https://contrib.rocks/image?repo=notionnext-org/NotionNext)](https://github.com/notionnext-org/NotionNext/graphs/contributors)
+```text
+v1 修改
+→ Vercel Preview
+→ 完整回归测试
+→ 合并 main
+→ Vercel Production
+```
 
-## 使用声明
+开发约束：
 
-本项目为免费、公开资源，仅限个人学习和合法站点建设使用。禁止利用本项目发布非法内容或进行违法活动。
+1. 所有试验性修改只进入 `v1`。
+2. `main` 只对应稳定生产版本。
+3. 同一对象直接覆盖原文件，不创建 `old`、`v2`、`final` 等副本。
+4. 历史版本通过 Git 提交、分支和标签保存。
+5. Notion 管理文章正文，GitHub 不保存重复文章内容。
+6. 新增或删除灵宠素材后必须执行素材审计。
+
+## 当前重点
+
+- 接入自定义域名
+- 继续统一 Utto 原始 IP 形象
+- 扩展灵宠自主移动、投喂、需求和页面互动
+- 增加真实项目文章与游戏 Demo 展示
+- 持续完善移动端体验与内容结构
+
+## 自定义文件说明
+
+相对 NotionNext 上游项目的主要改动记录在：
+
+[查看 CUSTOMIZATIONS.md](./CUSTOMIZATIONS.md)
+
+## 上游项目
+
+本项目基于开源项目 [NotionNext](https://github.com/notionnext-org/NotionNext) 二次开发。
+
+NotionNext 负责 Notion 内容解析、主题系统、站点构建及通用博客能力；本仓库主要维护“utto兔子的学习屋”的品牌、页面交互、灵宠和部署配置。
 
 ## License
 
-The MIT License.
-
-## Project Stars
-
-[![GitHub stars](https://img.shields.io/github/stars/notionnext-org/NotionNext?style=social)](https://github.com/notionnext-org/NotionNext/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/notionnext-org/NotionNext?style=social)](https://github.com/notionnext-org/NotionNext/forks)
-
-Live star-history charts are temporarily unavailable because GitHub now restricts historical stargazer data to repository owners and collaborators.
+沿用 NotionNext 的 MIT License。

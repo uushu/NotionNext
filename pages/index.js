@@ -1,7 +1,6 @@
 import BLOG from '@/blog.config'
 import contributionLedger from '@/data/contribution-events.json'
 import { siteConfig } from '@/lib/config'
-import { buildContributionEvents } from '@/lib/contribution/buildContributionEvents'
 import {
   cleanPostSummaries,
   fetchGlobalAllData,
@@ -153,9 +152,14 @@ export async function getStaticProps(req) {
 
   if (resolvedTheme === 'claude') {
     props.readmePage = await getClaudeReadmePage(props.allPages)
+
+    // 服务端动态导入，避免 Supabase 管理端逻辑进入浏览器 bundle。
+    const { resolveContributionEvents } = await import(
+      '@/lib/server/claude/resolveContributionEvents'
+    )
+
     // 必须在首页分页前生成，确保贡献图覆盖全部 Published 文章。
-    // 历史更新仅来自追加式账本，不再使用会被覆盖的 lastEditedDate。
-    props.contributionEvents = buildContributionEvents({
+    props.contributionEvents = await resolveContributionEvents({
       posts: publishedPosts,
       ledgerEvents: contributionLedger.events
     })

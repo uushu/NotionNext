@@ -9,68 +9,6 @@ const DASH_DELAY = 180
 const BLOCK_DELAY = 85
 const FINAL_CURSOR_DURATION = 2400
 
-/**
- * 首页 README 的静态快照。
- *
- * 文本直接进入服务端首屏 HTML，不读取 Notion。
- * 完整文本只作为透明占位，实际内容由客户端按字符逐步追加，避免 clip-path
- * 对中文、emoji 和彩色嵌套文本造成截断。
- */
-const README_BLOCKS = [
-  {
-    tag: 'h3',
-    className: 'notion-h notion-h2 notion-h-indent-0',
-    segments: [{ text: '🐰 欢迎来到 utto 兔子的学习屋' }]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [
-      { text: '你好，我是 ' },
-      { text: 'utto 兔子 ', className: 'notion-orange', strong: true },
-      { text: '( •̀ .̫ •́ )✧', className: 'notion-orange' }
-    ]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [{ text: '记录我的学习、游戏开发、项目实践和吃喝玩乐' }]
-  },
-  {
-    tag: 'h4',
-    className: 'notion-h notion-h3 notion-h-indent-1',
-    segments: [
-      { text: '🟠', strong: true },
-      { text: '这里主要会有', className: 'notion-brown' }
-    ]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [{ text: '速通笔记', className: 'notion-purple' }]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [{ text: '学习分享', className: 'notion-yellow' }]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [{ text: '项目实践', className: 'notion-teal' }]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [{ text: '…… ' }]
-  },
-  {
-    tag: 'div',
-    className: 'notion-text',
-    segments: [{ text: '目前正在持续建设中' }]
-  }
-]
-
 const TYPEWRITER_CSS = `
  #theme-claude .claude-prestored-readme {
    width: 100%;
@@ -142,14 +80,31 @@ const TYPEWRITER_CSS = `
  }
  `
 
-const escapeHtml = value => {
-  return String(value || '')
+const VOID_TAGS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr'
+])
+
+const escapeHtml = value =>
+  String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
-}
+
+const decodeBasicEntities = value =>
+  String(value || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) =>
+      String.fromCodePoint(parseInt(code, 16))
+    )
 
 const splitGraphemes = value => {
   const characters = Array.from(String(value || ''))
@@ -174,101 +129,229 @@ const getCharacterDuration = character => {
   return BASE_CHARACTER_DELAY
 }
 
-const renderSegmentBody = (segment, text) => {
-  const classAttribute = segment.className
-    ? ` class="${escapeHtml(segment.className)}"`
-    : ''
-  const escapedText = escapeHtml(text)
-  const body = segment.strong ? `<b>${escapedText}</b>` : escapedText
-
-  return segment.className || segment.strong
-    ? `<span${classAttribute}>${body}</span>`
-    : body
-}
-
-const renderFullBlock = block => {
-  return block.segments
-    .map(segment => renderSegmentBody(segment, segment.text))
-    .join('')
-}
-
-const getBlockCharacters = block => {
-  const characters = []
-
-  block.segments.forEach((segment, segmentIndex) => {
-    splitGraphemes(segment.text).forEach(character => {
-      characters.push({ character, segmentIndex })
-    })
-  })
-
-  return characters
-}
-
-const renderVisibleBlock = (block, visibleCount) => {
-  let remaining = Math.max(0, visibleCount)
-
-  return block.segments
-    .map(segment => {
-      if (remaining <= 0) return ''
-
-      const characters = splitGraphemes(segment.text)
-      const visibleCharacters = characters.slice(0, remaining)
-      remaining -= visibleCharacters.length
-
-      if (!visibleCharacters.length) return ''
-      return renderSegmentBody(segment, visibleCharacters.join(''))
-    })
-    .join('')
-}
-
-const createStaticReadmeHtml = () => {
-  const blocksHtml = README_BLOCKS.map((block, blockIndex) => {
-    const fullHtml = renderFullBlock(block)
-    const initialVisibleHtml =
-      blockIndex === 0 ? renderVisibleBlock(block, 1) : ''
-
-    return `<${block.tag} class="${escapeHtml(
-      block.className
-    )}" aria-label="${escapeHtml(
-      block.segments.map(segment => segment.text).join('')
-    )}"><span class="claude-prestored-readme-line"><span class="claude-prestored-readme-placeholder" aria-hidden="true">${fullHtml}</span><span class="claude-prestored-readme-visible" data-claude-readme-block="${blockIndex}" aria-hidden="true">${initialVisibleHtml}${
-      blockIndex === 0
-        ? '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
-        : ''
-    }</span></span></${block.tag}>`
-  }).join('')
-
-  return `<style data-claude-prestored-readme-style>${TYPEWRITER_CSS}</style><div id="notion-article" class="mx-auto overflow-hidden claude-readme-notion claude-prestored-readme" data-claude-readme-state="idle"><main class="notion light-mode notion-page">${blocksHtml}</main></div>`
-}
-
-const STATIC_README_HTML = createStaticReadmeHtml()
-const BLOCK_CHARACTERS = README_BLOCKS.map(getBlockCharacters)
-
-/**
- * 用预存文本替换首页 README 的动态 HTML。
- * 第一个字符直接进入首屏 HTML，避免动画启动前出现空白。
- */
-export const prepareReadmeTypewriterHtml = () => STATIC_README_HTML
-
-const renderBlockIntoNode = ({
-  blockIndex,
-  visibleCount,
-  cursorClassName = '',
-  root = document
-}) => {
-  const node = root.querySelector(
-    `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
+const stripHtmlToText = html =>
+  decodeBasicEntities(
+    String(html || '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, '')
   )
-  if (!node) return
+
+const getClassName = openingTag => {
+  const match = String(openingTag || '').match(
+    /\sclass\s*=\s*(["'])([\s\S]*?)\1/i
+  )
+  return match?.[2] || ''
+}
+
+const cleanHeadingInnerHtml = html =>
+  String(html || '')
+    .replace(
+      /<div\b[^>]*class\s*=\s*(["'])[^"']*\bnotion-header-anchor\b[^"']*\1[^>]*>[\s\S]*?<\/div>/gi,
+      ''
+    )
+    .replace(
+      /<a\b[^>]*class\s*=\s*(["'])[^"']*\bnotion-hash-link\b[^"']*\1[^>]*>[\s\S]*?<\/a>/gi,
+      ''
+    )
+
+const getMainContent = html => {
+  const source = String(html || '')
+  const openingMatch = source.match(/<main\b[^>]*>/i)
+  if (!openingMatch || openingMatch.index === undefined) return null
+
+  const contentStart = openingMatch.index + openingMatch[0].length
+  const contentEnd = source.lastIndexOf('</main>')
+  if (contentEnd < contentStart) return null
+
+  return {
+    openingTag: openingMatch[0],
+    innerHtml: source.slice(contentStart, contentEnd)
+  }
+}
+
+const splitTopLevelElements = html => {
+  const source = String(html || '')
+  const tagPattern = /<!--[\s\S]*?-->|<\/?([a-zA-Z][\w:-]*)\b[^>]*>/g
+  const elements = []
+  let depth = 0
+  let elementStart = -1
+  let match
+
+  while ((match = tagPattern.exec(source))) {
+    const rawTag = match[0]
+    if (rawTag.startsWith('<!--')) continue
+
+    const tagName = String(match[1] || '').toLowerCase()
+    const isClosing = /^<\//.test(rawTag)
+    const isSelfClosing = /\/\s*>$/.test(rawTag) || VOID_TAGS.has(tagName)
+
+    if (!isClosing) {
+      if (depth === 0) elementStart = match.index
+      if (!isSelfClosing) depth += 1
+
+      if (isSelfClosing && depth === 0 && elementStart >= 0) {
+        elements.push(source.slice(elementStart, tagPattern.lastIndex))
+        elementStart = -1
+      }
+      continue
+    }
+
+    if (depth > 0) depth -= 1
+    if (depth === 0 && elementStart >= 0) {
+      elements.push(source.slice(elementStart, tagPattern.lastIndex))
+      elementStart = -1
+    }
+  }
+
+  return elements
+}
+
+const parseRootElement = outerHtml => {
+  const openingMatch = String(outerHtml || '').match(
+    /^<([a-zA-Z][\w:-]*)\b[^>]*>/
+  )
+  if (!openingMatch) return null
+
+  const tag = openingMatch[1].toLowerCase()
+  const openingTag = openingMatch[0]
+  const closingTag = `</${tag}>`
+  const closingIndex = outerHtml.toLowerCase().lastIndexOf(closingTag)
+  const innerHtml =
+    closingIndex >= openingTag.length
+      ? outerHtml.slice(openingTag.length, closingIndex)
+      : ''
+
+  return {
+    tag,
+    className: getClassName(openingTag),
+    innerHtml,
+    outerHtml
+  }
+}
+
+const shouldExcludeElement = element => {
+  const classes = ` ${element.className} `
+  return (
+    classes.includes(' notion-viewport ') ||
+    classes.includes(' notion-collection-page-properties ')
+  )
+}
+
+const isAnimatedTextBlock = element => {
+  const classes = ` ${element.className} `
+  const isHeading =
+    /^h[1-6]$/.test(element.tag) && classes.includes(' notion-h ')
+  const isText =
+    element.tag === 'div' && classes.includes(' notion-text ')
+  return isHeading || isText
+}
+
+const getReadmeElements = sourceHtml => {
+  const main = getMainContent(sourceHtml)
+  if (!main) return null
+
+  const elements = splitTopLevelElements(main.innerHtml)
+    .map(parseRootElement)
+    .filter(Boolean)
+    .filter(element => !shouldExcludeElement(element))
+
+  const mainClassName =
+    getClassName(main.openingTag) || 'notion light-mode notion-page'
+  return { elements, mainClassName }
+}
+
+const renderAnimatedElement = (element, blockIndex) => {
+  const cleanedInnerHtml = /^h[1-6]$/.test(element.tag)
+    ? cleanHeadingInnerHtml(element.innerHtml)
+    : element.innerHtml
+  const fullText = stripHtmlToText(cleanedInnerHtml)
+  const firstCharacter = splitGraphemes(fullText)[0] || ''
+  const classAttribute = element.className
+    ? ` class="${escapeHtml(element.className)}"`
+    : ''
+
+  return `<${element.tag}${classAttribute} aria-label="${escapeHtml(
+    fullText
+  )}"><span class="claude-prestored-readme-line"><span class="claude-prestored-readme-placeholder" aria-hidden="true">${cleanedInnerHtml}</span><span class="claude-prestored-readme-visible" data-claude-readme-block="${blockIndex}" aria-hidden="true">${
+    blockIndex === 0 ? escapeHtml(firstCharacter) : ''
+  }${
+    blockIndex === 0
+      ? '<span class="claude-prestored-readme-cursor" aria-hidden="true"></span>'
+      : ''
+  }</span></span></${element.tag}>`
+}
+
+export const prepareReadmeTypewriterHtml = sourceHtml => {
+  const readme = getReadmeElements(sourceHtml)
+  if (!readme?.elements?.length) return sourceHtml
+
+  let animatedBlockIndex = 0
+  const contentHtml = readme.elements
+    .map(element => {
+      if (!isAnimatedTextBlock(element)) return element.outerHtml
+
+      const text = stripHtmlToText(element.innerHtml)
+      if (!text.trim()) return element.outerHtml
+
+      const html = renderAnimatedElement(element, animatedBlockIndex)
+      animatedBlockIndex += 1
+      return html
+    })
+    .join('')
+
+  if (!animatedBlockIndex) return sourceHtml
+
+  return `<style data-claude-prestored-readme-style>${TYPEWRITER_CSS}</style><div id="notion-article" class="mx-auto overflow-hidden claude-readme-notion claude-prestored-readme" data-claude-readme-state="idle"><main class="${escapeHtml(
+    readme.mainClassName
+  )}">${contentHtml}</main></div>`
+}
+
+const createRuntimeBlocks = shell =>
+  Array.from(
+    shell.querySelectorAll(
+      '.claude-prestored-readme-visible[data-claude-readme-block]'
+    )
+  )
+    .map(node => {
+      const placeholder = node.previousElementSibling
+      if (
+        !placeholder ||
+        !placeholder.classList.contains(
+          'claude-prestored-readme-placeholder'
+        )
+      ) {
+        return null
+      }
+
+      const sourceHtml = placeholder.innerHTML
+      const characters = splitGraphemes(placeholder.textContent || '')
+      return { node, sourceHtml, characters }
+    })
+    .filter(block => block && block.characters.length)
+
+const renderRuntimeBlock = (block, visibleCount, cursorClassName = '') => {
+  const template = document.createElement('template')
+  template.innerHTML = block.sourceHtml
+  let remaining = Math.max(0, visibleCount)
+  const walker = document.createTreeWalker(
+    template.content,
+    window.NodeFilter.SHOW_TEXT
+  )
+  let textNode = walker.nextNode()
+
+  while (textNode) {
+    const characters = splitGraphemes(textNode.nodeValue || '')
+    const visibleCharacters = characters.slice(0, remaining)
+    textNode.nodeValue = visibleCharacters.join('')
+    remaining = Math.max(0, remaining - characters.length)
+    textNode = walker.nextNode()
+  }
 
   const cursorHtml = cursorClassName
     ? `<span class="claude-prestored-readme-cursor ${cursorClassName}" aria-hidden="true"></span>`
     : ''
-
-  node.innerHTML = `${renderVisibleBlock(
-    README_BLOCKS[blockIndex],
-    visibleCount
-  )}${cursorHtml}`
+  block.node.innerHTML = `${template.innerHTML}${cursorHtml}`
 }
 
 export default function ReadmeTypewriter({ enabled = true }) {
@@ -280,37 +363,43 @@ export default function ReadmeTypewriter({ enabled = true }) {
     const shell = document.querySelector('.claude-prestored-readme')
     if (!shell) return undefined
 
+    const blocks = createRuntimeBlocks(shell)
+    if (!blocks.length) return undefined
+
     let timer = null
     let cancelled = false
 
-    const renderBlock = options => {
-      renderBlockIntoNode({ ...options, root: shell })
+    const renderBlock = ({
+      blockIndex,
+      visibleCount,
+      cursorClassName = ''
+    }) => {
+      const block = blocks[blockIndex]
+      if (!block) return
+      renderRuntimeBlock(block, visibleCount, cursorClassName)
     }
 
     const appendCursor = (blockIndex, className = '') => {
-      const node = shell.querySelector(
-        `.claude-prestored-readme-visible[data-claude-readme-block="${blockIndex}"]`
-      )
-      if (!node) return
-
-      node.insertAdjacentHTML(
+      const block = blocks[blockIndex]
+      if (!block) return
+      block.node.insertAdjacentHTML(
         'beforeend',
         `<span class="claude-prestored-readme-cursor ${className}" aria-hidden="true"></span>`
       )
     }
 
     const showAll = () => {
-      README_BLOCKS.forEach((_, blockIndex) => {
+      blocks.forEach((block, blockIndex) => {
         renderBlock({
           blockIndex,
-          visibleCount: BLOCK_CHARACTERS[blockIndex].length
+          visibleCount: block.characters.length
         })
       })
       shell.dataset.claudeReadmeState = 'done'
     }
 
     const resetForTyping = () => {
-      README_BLOCKS.forEach((_, blockIndex) => {
+      blocks.forEach((_, blockIndex) => {
         renderBlock({
           blockIndex,
           visibleCount: blockIndex === 0 ? 1 : 0
@@ -328,8 +417,6 @@ export default function ReadmeTypewriter({ enabled = true }) {
       return undefined
     }
 
-    // 每次通过客户端路由重新进入首页，都从一致的初始状态开始。
-    // 不能沿用上一次被中断的 typing 状态，否则会永久停在第一个 emoji。
     resetForTyping()
     shell.dataset.claudeReadmeState = 'typing'
 
@@ -337,17 +424,18 @@ export default function ReadmeTypewriter({ enabled = true }) {
     let visibleCount = 1
 
     const finish = () => {
+      const lastBlockIndex = blocks.length - 1
       renderBlock({
-        blockIndex: README_BLOCKS.length - 1,
-        visibleCount: BLOCK_CHARACTERS[README_BLOCKS.length - 1].length,
+        blockIndex: lastBlockIndex,
+        visibleCount: blocks[lastBlockIndex].characters.length,
         cursorClassName: 'is-finished'
       })
 
       timer = window.setTimeout(() => {
         if (cancelled) return
         renderBlock({
-          blockIndex: README_BLOCKS.length - 1,
-          visibleCount: BLOCK_CHARACTERS[README_BLOCKS.length - 1].length
+          blockIndex: lastBlockIndex,
+          visibleCount: blocks[lastBlockIndex].characters.length
         })
         shell.dataset.claudeReadmeState = 'done'
       }, FINAL_CURSOR_DURATION)
@@ -356,25 +444,22 @@ export default function ReadmeTypewriter({ enabled = true }) {
     const advance = () => {
       if (cancelled) return
 
-      const characters = BLOCK_CHARACTERS[blockIndex]
+      const characters = blocks[blockIndex].characters
       const currentCharacter =
-        characters[Math.max(0, visibleCount - 1)]?.character || ''
+        characters[Math.max(0, visibleCount - 1)] || ''
 
       if (visibleCount < characters.length) {
         timer = window.setTimeout(() => {
           if (cancelled) return
           visibleCount += 1
-          renderBlock({
-            blockIndex,
-            visibleCount
-          })
+          renderBlock({ blockIndex, visibleCount })
           appendCursor(blockIndex)
           advance()
         }, getCharacterDuration(currentCharacter))
         return
       }
 
-      if (blockIndex >= README_BLOCKS.length - 1) {
+      if (blockIndex >= blocks.length - 1) {
         finish()
         return
       }
@@ -385,10 +470,7 @@ export default function ReadmeTypewriter({ enabled = true }) {
         renderBlock({ blockIndex, visibleCount: characters.length })
         blockIndex += 1
         visibleCount = 1
-        renderBlock({
-          blockIndex,
-          visibleCount
-        })
+        renderBlock({ blockIndex, visibleCount })
         appendCursor(blockIndex)
         advance()
       }, BLOCK_DELAY)
@@ -399,9 +481,6 @@ export default function ReadmeTypewriter({ enabled = true }) {
     return () => {
       cancelled = true
       if (timer) window.clearTimeout(timer)
-
-      // 离开首页时必须把被中断的逐字内容恢复完整。
-      // 返回首页后，新的 effect 会再次调用 resetForTyping() 正常重播。
       showAll()
     }
   }, [enabled, router.pathname, router.asPath])

@@ -21,7 +21,8 @@ const SEO = props => {
   let url = PATH?.length ? createSiteUrl(LINK, SUB_PATH) || LINK : LINK
   let image
   const router = useRouter()
-  const meta = getSEOMeta(props, router, useGlobal()?.locale)
+  const socialImage = siteConfig('SOCIAL_IMAGE', '/images/utto-share.jpg')
+  const meta = getSEOMeta(props, router, useGlobal()?.locale, socialImage)
   const webFontUrl = siteConfig('FONT_URL')
   const hasWebFontUrl = Array.isArray(webFontUrl)
     ? webFontUrl.filter(Boolean).length > 0
@@ -60,7 +61,7 @@ const SEO = props => {
   }
   if (meta) {
     url = createSiteUrl(url, meta.slug) || url
-    image = getAbsoluteImageUrl(meta.image || '/bg_image.jpg', LINK)
+    image = getAbsoluteImageUrl(meta.image || socialImage, LINK)
   }
   const TITLE = siteConfig('TITLE')
   const title = meta?.title || TITLE
@@ -348,7 +349,7 @@ const getIsoTime = value => {
  * @param {*} props
  * @param {*} router
  */
-const getSEOMeta = (props, router, locale) => {
+const getSEOMeta = (props, router, locale, socialImage) => {
   const { post, siteInfo, tag, category, page } = props
   const keyword = router?.query?.s
 
@@ -358,7 +359,7 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${siteInfo?.title} | ${siteInfo?.description}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: '',
         type: 'website'
       }
@@ -366,7 +367,7 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${locale.NAV.ARCHIVE} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'archive',
         type: 'website'
       }
@@ -374,7 +375,7 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${page} | Page | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'page/' + page,
         type: 'website'
       }
@@ -383,7 +384,7 @@ const getSEOMeta = (props, router, locale) => {
         title: `${category} | ${locale.COMMON.CATEGORY} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
         slug: 'category/' + category,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         type: 'website'
       }
     case '/category/[category]/page/[page]':
@@ -391,7 +392,7 @@ const getSEOMeta = (props, router, locale) => {
         title: `${category} | ${locale.COMMON.CATEGORY} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
         slug: 'category/' + category,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         type: 'website'
       }
     case '/tag/[tag]':
@@ -399,7 +400,7 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${tag} | ${locale.COMMON.TAGS} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'tag/' + tag,
         type: 'website'
       }
@@ -407,7 +408,7 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${keyword || ''}${keyword ? ' | ' : ''}${locale.NAV.SEARCH} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'search',
         type: 'website'
       }
@@ -416,20 +417,20 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${keyword || ''}${keyword ? ' | ' : ''}${locale.NAV.SEARCH} | ${siteInfo?.title}`,
         description: TITLE,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'search/' + (keyword || ''),
         type: 'website'
       }
     case '/404':
       return {
         title: `${siteInfo?.title} | ${locale.NAV.PAGE_NOT_FOUND}`,
-        image: `${siteInfo?.pageCover}`
+        image: socialImage
       }
     case '/tag':
       return {
         title: `${locale.COMMON.TAGS} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'tag',
         type: 'website'
       }
@@ -437,7 +438,7 @@ const getSEOMeta = (props, router, locale) => {
       return {
         title: `${locale.COMMON.CATEGORY} | ${siteInfo?.title}`,
         description: `${siteInfo?.description}`,
-        image: `${siteInfo?.pageCover}`,
+        image: socialImage,
         slug: 'category',
         type: 'website'
       }
@@ -452,7 +453,7 @@ const getSEOMeta = (props, router, locale) => {
         description: post?.summary,
         type: post?.type,
         slug: post?.slug,
-        image: post?.pageCoverThumbnail || `${siteInfo?.pageCover}`,
+        image: post?.pageCoverThumbnail || socialImage,
         category,
         tags: post?.tags,
         publishDay: post?.publishDay,

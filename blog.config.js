@@ -25,6 +25,8 @@ const BLOG = {
     process.env.NEXT_PUBLIC_KEYWORD ||
     'utto兔子,游戏开发,C++,C#,Unity,游戏Demo,学习笔记,项目实践,生活记录', // 网站关键词 英文逗号隔开
   BLOG_FAVICON: process.env.NEXT_PUBLIC_FAVICON || '/utto-favicon.svg', // blog favicon 配置, 默认使用 /public/favicon.ico，支持在线图片，如 https://img.imesong.com/favicon.png
+  SOCIAL_IMAGE:
+    process.env.NEXT_PUBLIC_SOCIAL_IMAGE || '/images/utto-share.jpg', // 默认社交分享图，文章有独立封面时仍优先使用文章封面
   BEI_AN: process.env.NEXT_PUBLIC_BEI_AN || '', // 备案号 闽ICP备XXXXXX
   BEI_AN_LINK: process.env.NEXT_PUBLIC_BEI_AN_LINK || 'https://beian.miit.gov.cn/', // 备案查询链接，如果用了萌备等备案请在这里填写
   BEI_AN_GONGAN: process.env.NEXT_PUBLIC_BEI_AN_GONGAN || '', // 公安备案号，例如 '浙公网安备3xxxxxxxx8号'

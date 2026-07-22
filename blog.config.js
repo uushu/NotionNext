@@ -20,7 +20,7 @@ const BLOG = {
   BIO:
     process.env.NEXT_PUBLIC_BIO || '一只爱玩、爱学、爱竞技、爱记录的兔子', // 作者简介
   LINK:
-    process.env.NEXT_PUBLIC_LINK || 'https://yyshow.xyz', // 网站地址
+    process.env.NEXT_PUBLIC_LINK || 'https://www.yyshow.xyz', // 网站地址
   KEYWORDS:
     process.env.NEXT_PUBLIC_KEYWORD ||
     'utto兔子,游戏开发,C++,C#,Unity,游戏Demo,学习笔记,项目实践,生活记录', // 网站关键词 英文逗号隔开

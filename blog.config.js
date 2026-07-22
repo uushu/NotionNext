@@ -2,7 +2,7 @@
 
 const BLOG = {
   API_BASE_URL: process.env.API_BASE_URL || 'https://www.notion.so/api/v3', // API默认请求地址,可以配置成自己的地址例如：https://[xxxxx].notion.site/api/v3
-  // utto兔子的学习屋：生产环境使用的 Notion 主数据库。
+  // utto的学习屋：生产环境使用的 Notion 主数据库。
   // Vercel 中仍建议显式设置 NOTION_PAGE_ID，仓库默认值用于防止环境变量丢失后回退到官方示例站点。
   NOTION_PAGE_ID:
     process.env.NOTION_PAGE_ID || '398560c488bc801e94ebeb7c15a744a2',
@@ -20,7 +20,7 @@ const BLOG = {
   BIO:
     process.env.NEXT_PUBLIC_BIO || '一只爱玩、爱学、爱竞技、爱记录的兔子', // 作者简介
   LINK:
-    process.env.NEXT_PUBLIC_LINK || 'https://notion-next-btu6.vercel.app', // 网站地址
+    process.env.NEXT_PUBLIC_LINK || 'https://yyshow.xyz', // 网站地址
   KEYWORDS:
     process.env.NEXT_PUBLIC_KEYWORD ||
     'utto兔子,游戏开发,C++,C#,Unity,游戏Demo,学习笔记,项目实践,生活记录', // 网站关键词 英文逗号隔开
@@ -74,7 +74,7 @@ const BLOG = {
   // 欢迎语打字效果,Hexo,Matery主题支持, 英文逗号隔开多个欢迎语。
   GREETING_WORDS:
     process.env.NEXT_PUBLIC_GREETING_WORDS ||
-    '你好，我是 utto兔子,记录学习与游戏开发,欢迎来到 utto兔子的学习屋',
+    '你好，我是 utto兔子,记录学习与游戏开发,欢迎来到 utto的学习屋',
 
   // 欢迎语打字效果类型速度
   GREETING_WORDS_TYPE_SPEED:

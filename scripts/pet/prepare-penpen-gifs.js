@@ -22,9 +22,15 @@ const OUTPUT_DIR = path.resolve(
   manifest.generatedAssetBase.replace(/^\//, '')
 )
 const SPEED_FACTOR = Number(manifest.slowFactor || 1)
-const GIF_NAMES = Object.values(manifest.states)
-  .filter(state => state.generateSlow && state.file?.toLowerCase().endsWith('.gif'))
-  .map(state => state.file)
+const GIF_NAMES = [
+  ...new Set(
+    Object.values(manifest.states)
+      .filter(
+        state => state.generateSlow && state.file?.toLowerCase().endsWith('.gif')
+      )
+      .map(state => state.file)
+  )
+]
 
 function normalizeDelays(metadata) {
   const pageCount = Math.max(metadata.pages || 1, 1)

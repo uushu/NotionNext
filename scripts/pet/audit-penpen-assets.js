@@ -6,7 +6,7 @@ const MANIFEST_PATH = path.resolve(
   ROOT,
   'components',
   'pet',
-  'utto',
+  'penpen',
   'pet.manifest.json'
 )
 const manifest = require(MANIFEST_PATH)
@@ -45,26 +45,26 @@ const invalidEntries = fs
     return !SUPPORTED_EXTENSIONS.has(path.extname(name).toLowerCase())
   })
 
-console.log(`[UttoPet] Registered assets: ${registeredFiles.size}`)
-console.log(`[UttoPet] Asset files on disk: ${diskFiles.length}`)
+console.log(`[PenpenPet] Registered assets: ${registeredFiles.size}`)
+console.log(`[PenpenPet] Asset files on disk: ${diskFiles.length}`)
 
 if (missingFiles.length) {
-  console.error('[UttoPet] Missing registered assets:')
+  console.error('[PenpenPet] Missing registered assets:')
   missingFiles.forEach(file => console.error(`  - ${file}`))
 }
 
 if (unregisteredFiles.length) {
-  console.warn('[UttoPet] Unregistered assets:')
+  console.warn('[PenpenPet] Unregistered assets:')
   unregisteredFiles.forEach(file => console.warn(`  - ${file}`))
 }
 
 if (invalidEntries.length) {
-  console.warn('[UttoPet] Unexpected files or directories:')
+  console.warn('[PenpenPet] Unexpected files or directories:')
   invalidEntries.forEach(file => console.warn(`  - ${file}`))
 }
 
 if (missingFiles.length) {
   process.exitCode = 1
 } else {
-  console.log('[UttoPet] Asset audit passed.')
+  console.log('[PenpenPet] Asset audit passed.')
 }

@@ -7,7 +7,7 @@ const MANIFEST_PATH = path.resolve(
   PROJECT_ROOT,
   'components',
   'pet',
-  'utto',
+  'penpen',
   'pet.manifest.json'
 )
 const manifest = require(MANIFEST_PATH)
@@ -73,12 +73,12 @@ async function prepareGif(name) {
       .toFile(temporaryPath)
 
     await fs.rename(temporaryPath, outputPath)
-    console.log(`[UttoPet] Prepared slower GIF: ${name}`)
+    console.log(`[PenpenPet] Prepared slower GIF: ${name}`)
   } catch (error) {
     await fs.rm(temporaryPath, { force: true })
     await fs.copyFile(sourcePath, outputPath)
     console.warn(
-      `[UttoPet] Could not slow ${name}; copied the original instead:`,
+      `[PenpenPet] Could not slow ${name}; copied the original instead:`,
       error?.message || error
     )
   }
@@ -90,6 +90,6 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error('[UttoPet] Failed to prepare GIF assets:', error)
+  console.error('[PenpenPet] Failed to prepare GIF assets:', error)
   process.exitCode = 1
 })

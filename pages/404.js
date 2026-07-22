@@ -7,10 +7,10 @@ const Rabbit404Illustration = () => (
   <div className='relative mx-auto flex aspect-square w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[36px] border border-[#dcc9b8]/70 bg-[#f8f1e8]/85 shadow-[0_18px_50px_rgba(98,72,50,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#2b2723]/80 dark:shadow-[0_18px_55px_rgba(0,0,0,0.28)]'>
     <div className='absolute inset-x-10 bottom-7 h-12 rounded-full bg-[#d9b99a]/25 blur-xl dark:bg-[#d7b28e]/15' />
     <picture className='relative z-10 block h-[86%] w-[86%]'>
-      <source srcSet='/pet/utto/fatal-error.webp' type='image/webp' />
+      <source srcSet='/pet/penpen/fatal-error.webp' type='image/webp' />
       <img
-        src='/pet/utto/fatal-error.png'
-        alt='迷路的 utto 兔子'
+        src='/pet/penpen/fatal-error.png'
+        alt='迷路的兔子灵宠 penpen'
         className='h-full w-full object-contain drop-shadow-[0_12px_16px_rgba(87,61,42,0.16)]'
         draggable='false'
       />
@@ -19,7 +19,7 @@ const Rabbit404Illustration = () => (
 )
 
 const NotFoundPage = () => {
-  const title = siteConfig('TITLE') || 'utto兔子的学习屋'
+  const title = siteConfig('TITLE') || 'utto的学习屋'
   const links = [
     { href: '/', icon: 'fa-home', label: '返回首页' },
     { href: '/category', icon: 'fa-folder', label: '文章分类' },
@@ -42,7 +42,7 @@ const NotFoundPage = () => {
           404
         </h1>
         <p className='mb-2 text-base font-medium text-[#6b4f3b] dark:text-[#e7cdb6] md:text-lg'>
-          utto兔子好像走错路了
+          penpen 好像走错路了
         </p>
         <p className='mb-7 text-sm text-gray-500 dark:text-gray-400'>
           这个页面不存在，或者已经被移动到别处。

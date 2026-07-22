@@ -1,5 +1,9 @@
+import { PET_MANIFEST } from './pet.config'
+
 export const normalizePath = value => {
-  const rawPath = String(value || '/').split('?')[0].split('#')[0]
+  const rawPath = String(value || '/')
+    .split('?')[0]
+    .split('#')[0]
   return rawPath || '/'
 }
 
@@ -60,3 +64,47 @@ export const getDefaultPosition = () => {
     y: window.innerHeight - size - 76
   })
 }
+
+const randomBetween = (min, max) => min + Math.random() * (max - min)
+
+export const getRoamingDelay = () => {
+  const isMobile = window.innerWidth <= 768
+  const [minimum, maximum] = isMobile
+    ? PET_MANIFEST.roaming.mobileDelay
+    : PET_MANIFEST.roaming.desktopDelay
+
+  return Math.round(randomBetween(minimum, maximum))
+}
+
+export const getRoamingPosition = currentPosition => {
+  const size = getPetSize()
+  const margin = 8
+  const maximumX = Math.max(margin, window.innerWidth - size - margin)
+  const maximumY = Math.max(margin, window.innerHeight - size - 72)
+  const minimumY = Math.min(
+    maximumY,
+    Math.max(margin, window.innerHeight * PET_MANIFEST.roaming.topRatio)
+  )
+  const current = clampPosition(currentPosition || getDefaultPosition())
+
+  let candidate = current
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    candidate = clampPosition({
+      x: randomBetween(margin, maximumX),
+      y: randomBetween(minimumY, maximumY)
+    })
+    if (
+      Math.hypot(candidate.x - current.x, candidate.y - current.y) >=
+      PET_MANIFEST.roaming.minDistance
+    ) {
+      break
+    }
+  }
+
+  return candidate
+}
+
+export const getRoamingDuration = (from, to) =>
+  Math.round(
+    Math.min(3000, Math.max(1500, Math.hypot(to.x - from.x, to.y - from.y) * 6))
+  )

@@ -25,7 +25,7 @@ import ReadmeTypewriter, {
   prepareReadmeTypewriterHtml
 } from '@/components/ReadmeTypewriter'
 import SEO from '@/components/SEO'
-import UttoPet from '@/components/pet/utto'
+import PenpenPet from '@/components/pet/penpen'
 import { zhCN } from '@clerk/localizations'
 import dynamic from 'next/dynamic'
 // import { ClerkProvider } from '@clerk/nextjs'
@@ -138,7 +138,7 @@ const MyApp = ({ Component, pageProps }) => {
           />
         )}
         <ClickGlassRipple enabled={isClaudeTheme} />
-        <UttoPet enabled={isClaudeTheme} pageProps={renderPageProps} />
+        <PenpenPet enabled={isClaudeTheme} pageProps={renderPageProps} />
         <ExternalPlugins {...renderPageProps} />
       </GlobalContextProvider>
     </AppErrorBoundary>

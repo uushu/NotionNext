@@ -8,8 +8,34 @@ import BLOG from './blog.config'
  * Clerk 身份验证中间件
  */
 export const config = {
-  // 这里设置白名单，防止静态资源被拦截
-  matcher: ['/((?!.*\\..*|_next|/sign-in|/auth).*)', '/', '/(api|trpc)(.*)']
+  // 静态资源继续直出；像 /.env、/.git/config 这类带点的探测路径则进入中间件并被提前拦截。
+  matcher: [
+    '/((?!_next|sign-in|auth|.*\\.(?:css|js|mjs|map|png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|otf|txt|xml)$).*)',
+    '/',
+    '/(api|trpc)(.*)'
+  ]
+}
+
+const blockedProbePatterns = [
+  /^\/\.env(?:\.|\/|$)/i,
+  /^\/\.git(?:\/|$)/i,
+  /^\/(?:wp-admin|phpmyadmin)(?:\/|$)/i,
+  /^\/wp-login\.php$/i
+]
+
+export const isBlockedProbePath = (pathname: string) =>
+  blockedProbePatterns.some(pattern => pattern.test(pathname))
+
+const getBlockedProbeResponse = (req: NextRequest) => {
+  if (!isBlockedProbePath(req.nextUrl.pathname)) return null
+
+  return new NextResponse(null, {
+    status: 404,
+    headers: {
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'X-Robots-Tag': 'noindex, nofollow'
+    }
+  })
 }
 
 // 限制登录访问的路由
@@ -34,6 +60,9 @@ const isTenantAdminRoute = createRouteMatcher([
  */
 // eslint-disable-next-line @typescript-eslint/require-await, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 const noAuthMiddleware = async (req: NextRequest, ev: any) => {
+  const blockedResponse = getBlockedProbeResponse(req)
+  if (blockedResponse) return blockedResponse
+
   // 如果没有配置 Clerk 相关环境变量，返回一个默认响应或者继续处理请求
   if (BLOG['UUID_REDIRECT']) {
     let redirectJson: Record<string, string> = {}
@@ -65,6 +94,9 @@ const noAuthMiddleware = async (req: NextRequest, ev: any) => {
  */
 const authMiddleware = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   ? clerkMiddleware((auth, req) => {
+      const blockedResponse = getBlockedProbeResponse(req)
+      if (blockedResponse) return blockedResponse
+
       const { userId } = auth()
       // 处理 /dashboard 路由的登录保护
       if (isTenantRoute(req)) {

@@ -1,14 +1,44 @@
 {
-  "name": "utto",
-  "assetBase": "/pet/utto",
-  "generatedAssetBase": "/pet/utto/slow",
+  "name": "penpen",
+  "displayName": "penpen",
+  "assetBase": "/pet/penpen",
+  "generatedAssetBase": "/pet/penpen/slow",
   "slowFactor": 1.9,
   "storageKeys": {
+    "position": "penpen-pet-position-v1",
+    "collapsed": "penpen-pet-collapsed-v1",
+    "needs": "penpen-pet-needs-v1"
+  },
+  "legacyStorageKeys": {
     "position": "utto-pet-position-v2",
     "collapsed": "utto-pet-collapsed"
   },
+  "needs": {
+    "initial": {
+      "fullness": 82,
+      "mood": 78,
+      "energy": 76,
+      "affinity": 8
+    },
+    "decayPerHour": {
+      "fullness": 6,
+      "mood": 2,
+      "energy": 3.5
+    },
+    "thresholds": {
+      "fullness": 28,
+      "mood": 24,
+      "energy": 20
+    }
+  },
+  "roaming": {
+    "desktopDelay": [28000, 48000],
+    "mobileDelay": [46000, 76000],
+    "minDistance": 120,
+    "topRatio": 0.58
+  },
   "baseStates": ["idle", "reading", "exploring", "fatalError"],
-  "inactiveStates": ["bored", "break", "sleep"],
+  "inactiveStates": ["bored", "hungry", "break", "sleep"],
   "idleStages": [
     [90000, "bored"],
     [210000, "break"],
@@ -33,6 +63,11 @@
     "bored": {
       "file": "bored.gif",
       "label": "发会儿呆",
+      "generateSlow": true
+    },
+    "hungry": {
+      "file": "bored.gif",
+      "label": "penpen 有点饿了",
       "generateSlow": true
     },
     "break": {

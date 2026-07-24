@@ -1,4 +1,4 @@
-# utto兔子的学习屋：自定义文件清单
+# utto 的学习屋：自定义文件清单
 
 该文件记录相对 NotionNext 上游模板新增或重点修改的项目文件，便于清理、迁移和后续维护。
 
@@ -7,11 +7,12 @@
 ### 运行代码
 
 ```text
-components/pet/utto/
+components/pet/penpen/
 ├── index.js
-├── UttoPet.js
+├── PenpenPet.js
 ├── PetStyles.js
 ├── pet.config.js
+├── pet.needs.js
 ├── pet.utils.js
 ├── pet.manifest.json
 └── README.md
@@ -20,7 +21,7 @@ components/pet/utto/
 ### 原始素材
 
 ```text
-public/pet/utto/
+public/pet/penpen/
 ├── idle.gif
 ├── reading.gif
 ├── exploring.gif
@@ -38,14 +39,14 @@ public/pet/utto/
 ### 工具
 
 ```text
-scripts/pet/prepare-utto-gifs.js
-scripts/pet/audit-utto-assets.js
+scripts/pet/prepare-penpen-gifs.js
+scripts/pet/audit-penpen-assets.js
 ```
 
 ### 生成文件
 
 ```text
-public/pet/utto/slow/
+public/pet/penpen/slow/
 ```
 
 该目录由构建脚本生成，已加入 `.gitignore`，不提交到仓库。
@@ -94,10 +95,10 @@ WebP 是优先加载版本，PNG 是兼容回退版本，不应删除其中任�
 ## 6. 已清理项目
 
 ```text
-components/UttoPet.js                 已迁移到 components/pet/utto/
-scripts/prepare-utto-gifs.js          已迁移到 scripts/pet/
+components/UttoPet.js                 已由 components/pet/penpen/PenpenPet.js 取代
+scripts/prepare-utto-gifs.js          已由 scripts/pet/prepare-penpen-gifs.js 取代
 public/pet/utto/manifest.json          与组件 manifest 重复，已删除
-public/pet/utto/slow/                  改为构建生成且不纳入 Git
+public/pet/utto/slow/                  旧生成目录已由 penpen/slow/ 取代
 ```
 
 ## 7. 迁移灵宠所需最小集合
@@ -105,22 +106,22 @@ public/pet/utto/slow/                  改为构建生成且不纳入 Git
 复制：
 
 ```text
-components/pet/utto/
-public/pet/utto/
+components/pet/penpen/
+public/pet/penpen/
 scripts/pet/
 ```
 
 并在目标项目中：
 
 1. 安装 `sharp`。
-2. 构建前执行 `node scripts/pet/prepare-utto-gifs.js`。
-3. 从 `components/pet/utto` 引入组件。
-4. 执行 `node scripts/pet/audit-utto-assets.js` 检查素材完整性。
+2. 构建前执行 `node scripts/pet/prepare-penpen-gifs.js`。
+3. 从 `components/pet/penpen` 引入组件。
+4. 执行 `node scripts/pet/audit-penpen-assets.js` 检查素材完整性。
 
 ## 8. 维护规则
 
 - 新动画只在 `pet.manifest.json` 登记一次。
-- 原始动画放入 `public/pet/utto/`。
+- 原始动画放入 `public/pet/penpen/`。
 - 不提交 `slow/`、临时帧、测试导出和失败稿。
 - 测试动画确认可用后再使用正式名称上传。
 - 删除素材前先执行资产审计，并检查 manifest 和页面引用。

@@ -7,7 +7,7 @@ const MANIFEST_PATH = path.resolve(
   PROJECT_ROOT,
   'components',
   'pet',
-  'utto',
+  'penpen',
   'pet.manifest.json'
 )
 const manifest = require(MANIFEST_PATH)
@@ -22,9 +22,15 @@ const OUTPUT_DIR = path.resolve(
   manifest.generatedAssetBase.replace(/^\//, '')
 )
 const SPEED_FACTOR = Number(manifest.slowFactor || 1)
-const GIF_NAMES = Object.values(manifest.states)
-  .filter(state => state.generateSlow && state.file?.toLowerCase().endsWith('.gif'))
-  .map(state => state.file)
+const GIF_NAMES = [
+  ...new Set(
+    Object.values(manifest.states)
+      .filter(
+        state => state.generateSlow && state.file?.toLowerCase().endsWith('.gif')
+      )
+      .map(state => state.file)
+  )
+]
 
 function normalizeDelays(metadata) {
   const pageCount = Math.max(metadata.pages || 1, 1)
@@ -73,12 +79,12 @@ async function prepareGif(name) {
       .toFile(temporaryPath)
 
     await fs.rename(temporaryPath, outputPath)
-    console.log(`[UttoPet] Prepared slower GIF: ${name}`)
+    console.log(`[PenpenPet] Prepared slower GIF: ${name}`)
   } catch (error) {
     await fs.rm(temporaryPath, { force: true })
     await fs.copyFile(sourcePath, outputPath)
     console.warn(
-      `[UttoPet] Could not slow ${name}; copied the original instead:`,
+      `[PenpenPet] Could not slow ${name}; copied the original instead:`,
       error?.message || error
     )
   }
@@ -90,6 +96,6 @@ async function main() {
 }
 
 main().catch(error => {
-  console.error('[UttoPet] Failed to prepare GIF assets:', error)
+  console.error('[PenpenPet] Failed to prepare GIF assets:', error)
   process.exitCode = 1
 })

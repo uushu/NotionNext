@@ -81,7 +81,7 @@ export default function ClickGlassRipple({ enabled = true }) {
       pointerStart = null
 
       if (distance > CLICK_MOVE_TOLERANCE) return
-      if (target instanceof Element && target.closest('.utto-pet')) return
+      if (target instanceof Element && target.closest('.penpen-pet')) return
 
       createEffect(event.clientX, event.clientY)
     }
@@ -226,22 +226,6 @@ export default function ClickGlassRipple({ enabled = true }) {
       .dark .claude-paper-click__spark,
       [data-theme='dark'] .claude-paper-click__spark {
         background: rgba(237, 193, 149, 0.78);
-      }
-
-      /* 灵宠单击反馈文案 */
-      .utto-pet[data-state='interact'] .utto-pet__bubble {
-        font-size: 0;
-      }
-
-      .utto-pet[data-state='interact'] .utto-pet__bubble::after {
-        content: '真棒！';
-        font-size: 13px;
-      }
-
-      @media (max-width: 768px) {
-        .utto-pet[data-state='interact'] .utto-pet__bubble::after {
-          font-size: 12px;
-        }
       }
 
       @media (prefers-reduced-motion: reduce) {

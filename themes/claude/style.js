@@ -1786,11 +1786,11 @@ const Style = () => {
       }
       .claude-year-filter-item.active {
         color: var(--claude-year-filter-text-active);
-        background: var(--claude-gh-link);
+        background: var(--claude-accent);
         font-weight: 500;
       }
       .claude-year-filter-item:focus-visible {
-        outline: 2px solid var(--claude-gh-link);
+        outline: 2px solid var(--claude-accent);
         outline-offset: -2px;
       }
       .claude-year-filter-item.active:focus-visible {

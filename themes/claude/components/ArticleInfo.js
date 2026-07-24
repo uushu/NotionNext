@@ -60,7 +60,8 @@ export default function ArticleInfo(props) {
             <button
               type='button'
               onClick={handleBack}
-              className={backButtonClass}>
+              className={backButtonClass}
+            >
               <i className='fas fa-arrow-left text-xs' />
               <span>返回</span>
             </button>
@@ -80,15 +81,14 @@ export default function ArticleInfo(props) {
               发布于
               <SmartLink
                 className='p-1 hover:text-red-400 transition-all duration-200'
-                href={`/archive#${formatDateFmt(post?.publishDate, 'yyyy-MM')}`}>
+                href={`/archive#${formatDateFmt(post?.publishDate, 'yyyy-MM')}`}
+              >
                 {post.date?.start_date || post.createdTime}
               </SmartLink>
             </span>
 
             {statsEnable && (
-              <span
-                className='busuanzi_container_page_pv text-sm'
-                style={{ display: 'none' }}>
+              <span className='busuanzi_container_page_pv text-sm'>
                 <i className='fas fa-eye mr-1' />
                 阅读 <span className='busuanzi_value_page_pv'>--</span>
               </span>
@@ -101,7 +101,8 @@ export default function ArticleInfo(props) {
                   <SmartLink
                     key={t}
                     href={`/tag/${t}`}
-                    className='hover:text-red-400 transition-all duration-200'>
+                    className='hover:text-red-400 transition-all duration-200'
+                  >
                     <span> #{t}</span>
                   </SmartLink>
                 ))}

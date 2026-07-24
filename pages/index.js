@@ -148,6 +148,7 @@ export async function getStaticProps(req) {
     ) || []
 
   props.posts = publishedPosts
+  props.homePostCandidates = cleanPostSummaries(publishedPosts)
 
   if (resolvedTheme === 'claude') {
     props.readmePage = await getClaudeReadmePage(props.allPages)

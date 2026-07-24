@@ -1143,7 +1143,6 @@ const Style = () => {
         align-items: center;
         gap: 0.5rem;
         margin: 0;
-        color: var(--claude-gh-fg-default);
         font-family: var(--claude-gh-font-family);
         font-size: 16px;
         font-weight: 600;
@@ -1153,6 +1152,28 @@ const Style = () => {
         width: 18px;
         color: var(--claude-gh-link);
         text-align: center;
+      }
+      .claude-home-article-tab {
+        appearance: none;
+        padding: 0;
+        border: 0;
+        color: var(--claude-gh-fg-muted);
+        background: transparent;
+        font: inherit;
+        line-height: inherit;
+        cursor: pointer;
+        transition: color 160ms ease;
+      }
+      .claude-home-article-tab:hover {
+        color: var(--claude-gh-fg-default);
+      }
+      .claude-home-article-tab.active {
+        color: var(--claude-gh-fg-default);
+      }
+      .claude-home-article-tab:focus-visible {
+        border-radius: 3px;
+        outline: 2px solid var(--claude-gh-link);
+        outline-offset: 3px;
       }
       .claude-home-article-list {
         list-style: none;
@@ -1250,6 +1271,33 @@ const Style = () => {
         color: var(--claude-gh-fg-muted);
         font-size: 13px;
         text-align: center;
+      }
+      .claude-home-article-loading {
+        display: flex;
+        flex-direction: column;
+      }
+      .claude-home-article-loading > span {
+        position: relative;
+        min-height: 74px;
+        overflow: hidden;
+      }
+      .claude-home-article-loading > span::before,
+      .claude-home-article-loading > span::after {
+        position: absolute;
+        left: 3rem;
+        content: '';
+        border-radius: 999px;
+        background: var(--claude-home-card-bg);
+      }
+      .claude-home-article-loading > span::before {
+        top: 20px;
+        width: 58%;
+        height: 10px;
+      }
+      .claude-home-article-loading > span::after {
+        top: 41px;
+        width: 38%;
+        height: 8px;
       }
       .claude-activity-card {
         background: transparent;
@@ -1787,6 +1835,9 @@ const Style = () => {
         }
         .claude-home-article-status {
           min-height: 180px;
+        }
+        .claude-home-article-loading > span {
+          min-height: 68px;
         }
       }
       @media (max-width: 1023px) {

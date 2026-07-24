@@ -73,11 +73,11 @@ const Style = () => {
         --claude-home-card-bg: #F6F8FA;
         --claude-home-card-border: var(--claude-gh-border);
         --claude-home-link: var(--claude-gh-blue-bg);
-        --claude-contrib-l0: #EFF2F5;
-        --claude-contrib-l1: #ACEEBB;
-        --claude-contrib-l2: #4AC26B;
-        --claude-contrib-l3: #2DA44E;
-        --claude-contrib-l4: #116329;
+        --claude-contrib-l0: #F1EEE9;
+        --claude-contrib-l1: #F3C8B9;
+        --claude-contrib-l2: #EAA88F;
+        --claude-contrib-l3: #DA7756;
+        --claude-contrib-l4: #A94F35;
         --claude-contrib-border: #1F23280D;
         --claude-contrib-label: var(--claude-gh-fg-default);
         --claude-code-bg: var(--claude-bg);
@@ -160,11 +160,11 @@ const Style = () => {
         --claude-profile-contact-hover: var(--claude-gh-fg-default);
         --claude-home-card-bg: rgb(255 255 255 / 0.03);
         --claude-home-card-border: rgb(61, 68, 77);
-        --claude-contrib-l0: #151B23;
-        --claude-contrib-l1: #033A16;
-        --claude-contrib-l2: #196C2E;
-        --claude-contrib-l3: #2EA043;
-        --claude-contrib-l4: #56D364;
+        --claude-contrib-l0: #2C2A26;
+        --claude-contrib-l1: #614338;
+        --claude-contrib-l2: #8E5D4A;
+        --claude-contrib-l3: #C07A5D;
+        --claude-contrib-l4: #E4AA8E;
         --claude-contrib-border: var(--claude-profile-border);
         --claude-contrib-label: var(--claude-gh-fg-default);
         --claude-code-bg: var(--claude-bg);
@@ -946,8 +946,10 @@ const Style = () => {
         font-size: 0.95rem;
       }
       .claude-contrib-card {
-        background: var(--claude-bg);
-        padding: 1rem 1rem 0.875rem;
+        background: var(--claude-bg-secondary);
+        border-color: transparent;
+        border-radius: 14px;
+        padding: 1.1rem 1.15rem 1rem;
         --claude-contrib-gap: 3px;
         --claude-contrib-cell-size: 11px;
         --claude-contrib-cell-radius: calc(var(--claude-contrib-cell-size) / 5);
@@ -959,17 +961,17 @@ const Style = () => {
         color: var(--claude-gh-fg-default);
         color-scheme: light;
         display: block;
-        font-family: var(--claude-gh-font-family);
-        font-size: var(--h4-size, 16px);
-        font-weight: 400;
-        height: 24px;
-        line-height: 24px;
+        font-family: var(--claude-heading-font);
+        font-size: 22px;
+        font-weight: 600;
+        height: auto;
+        line-height: 1.25;
         margin-block-start: 0;
         margin-block-end: 8px;
         margin-inline-start: 0;
         margin-inline-end: 0;
         margin-top: 0;
-        margin-bottom: 8px;
+        margin-bottom: 0;
         overflow-wrap: break-word;
         text-size-adjust: 100%;
         unicode-bidi: isolate;
@@ -1116,10 +1118,10 @@ const Style = () => {
       }
       .claude-contrib-header {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: space-between;
         gap: 0.75rem;
-        margin-bottom: 8px;
+        margin-bottom: 1rem;
       }
       .claude-contrib-header .claude-contrib-title {
         height: auto;
@@ -1127,6 +1129,7 @@ const Style = () => {
       }
       .claude-home-articles {
         min-width: 0;
+        margin-top: clamp(2.75rem, 6vw, 4.5rem);
       }
       .claude-home-article-panel {
         min-width: 0;
@@ -1135,75 +1138,70 @@ const Style = () => {
       .claude-home-article-panel-header {
         display: flex;
         align-items: center;
-        margin: 0 0 0.55rem;
-        padding: 0 0.2rem;
+        margin: 0 0 1rem;
+        padding: 0 0.25rem;
       }
       .claude-home-article-panel-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
         margin: 0;
-        font-family: var(--claude-gh-font-family);
-        font-size: 16px;
+        color: var(--claude-text-strong);
+        font-family: var(--claude-heading-font);
+        font-size: 26px;
         font-weight: 600;
+        line-height: 1.25;
+      }
+      .claude-section-kicker {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: var(--claude-accent);
+        font-family: var(--claude-body-font);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
         line-height: 1.4;
-      }
-      .claude-home-article-panel-title > i {
-        width: 18px;
-        color: var(--claude-gh-link);
-        text-align: center;
-      }
-      .claude-home-article-tab {
-        appearance: none;
-        padding: 0;
-        border: 0;
-        color: var(--claude-gh-fg-muted);
-        background: transparent;
-        font: inherit;
-        line-height: inherit;
-        cursor: pointer;
-        transition: color 160ms ease;
-      }
-      .claude-home-article-tab:hover {
-        color: var(--claude-gh-fg-default);
-      }
-      .claude-home-article-tab.active {
-        color: var(--claude-gh-fg-default);
-      }
-      .claude-home-article-tab:focus-visible {
-        border-radius: 3px;
-        outline: 2px solid var(--claude-gh-link);
-        outline-offset: 3px;
+        text-transform: uppercase;
       }
       .claude-home-article-list {
+        display: grid;
+        gap: 0.35rem;
         list-style: none;
         margin: 0;
         padding: 0;
       }
       .claude-home-article-row {
         display: grid;
-        grid-template-columns: 2rem minmax(0, 1fr) 14px;
+        grid-template-columns: 1rem minmax(0, 1fr) 14px;
         align-items: center;
-        gap: 0.7rem;
-        min-height: 74px;
-        padding: 0.7rem 0.2rem;
-        border-radius: 8px;
-        color: var(--claude-gh-fg-default);
+        gap: 0.9rem;
+        min-height: 76px;
+        padding: 0.8rem 0.9rem;
+        border-radius: 12px;
+        color: var(--claude-text-strong);
         text-decoration: none;
         transition:
           background-color 160ms ease,
-          color 160ms ease;
+          color 160ms ease,
+          transform 160ms ease;
       }
       .claude-home-article-row:hover {
-        color: var(--claude-gh-link);
-        background: var(--claude-home-card-bg);
+        color: var(--claude-accent-hover);
+        background: var(--claude-sidebar-active-bg);
+        transform: translateX(3px);
       }
-      .claude-home-article-rank {
-        color: var(--claude-gh-fg-muted);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 12px;
-        font-weight: 600;
-        text-align: center;
+      .claude-home-article-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .claude-home-article-marker > i {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--claude-accent);
+        box-shadow: 0 0 0 4px var(--claude-sidebar-active-bg);
+        transition: transform 160ms ease;
+      }
+      .claude-home-article-row:hover .claude-home-article-marker > i {
+        transform: scale(1.2);
       }
       .claude-home-article-content {
         display: flex;
@@ -1215,9 +1213,9 @@ const Style = () => {
         display: -webkit-box;
         overflow: hidden;
         color: inherit;
-        font-family: var(--claude-gh-font-family);
-        font-size: 14px;
-        font-weight: 600;
+        font-family: var(--claude-body-font);
+        font-size: 15px;
+        font-weight: 500;
         line-height: 1.45;
         overflow-wrap: anywhere;
         -webkit-box-orient: vertical;
@@ -1229,8 +1227,9 @@ const Style = () => {
         gap: 0.45rem;
         min-width: 0;
         overflow: hidden;
-        color: var(--claude-gh-fg-muted);
-        font-size: 11px;
+        color: var(--claude-text-tertiary);
+        font-family: var(--claude-body-font);
+        font-size: 12px;
         line-height: 1.4;
         white-space: nowrap;
       }
@@ -1243,13 +1242,14 @@ const Style = () => {
       .claude-home-article-category {
         max-width: 9rem;
         overflow: hidden;
-        padding: 0.08rem 0.35rem;
+        padding: 0.1rem 0.45rem;
         border-radius: 999px;
-        background: var(--claude-home-card-bg);
+        color: var(--claude-accent-hover);
+        background: var(--claude-sidebar-active-bg);
         text-overflow: ellipsis;
       }
       .claude-home-article-arrow {
-        color: var(--claude-gh-fg-muted);
+        color: var(--claude-accent);
         font-size: 10px;
         opacity: 0;
         transform: translateX(-3px);
@@ -1271,33 +1271,6 @@ const Style = () => {
         color: var(--claude-gh-fg-muted);
         font-size: 13px;
         text-align: center;
-      }
-      .claude-home-article-loading {
-        display: flex;
-        flex-direction: column;
-      }
-      .claude-home-article-loading > span {
-        position: relative;
-        min-height: 74px;
-        overflow: hidden;
-      }
-      .claude-home-article-loading > span::before,
-      .claude-home-article-loading > span::after {
-        position: absolute;
-        left: 3rem;
-        content: '';
-        border-radius: 999px;
-        background: var(--claude-home-card-bg);
-      }
-      .claude-home-article-loading > span::before {
-        top: 20px;
-        width: 58%;
-        height: 10px;
-      }
-      .claude-home-article-loading > span::after {
-        top: 41px;
-        width: 38%;
-        height: 8px;
       }
       .claude-activity-card {
         background: transparent;
@@ -1824,20 +1797,20 @@ const Style = () => {
         box-shadow: inset 0 0 0 3px #fff;
       }
       @media (max-width: 767px) {
+        .claude-home-articles {
+          margin-top: 2.5rem;
+        }
         .claude-home-article-panel-header {
           padding: 0;
         }
         .claude-home-article-row {
-          grid-template-columns: 1.75rem minmax(0, 1fr) 12px;
-          gap: 0.55rem;
+          grid-template-columns: 0.75rem minmax(0, 1fr) 12px;
+          gap: 0.7rem;
           min-height: 68px;
-          padding: 0.65rem 0;
+          padding: 0.65rem 0.6rem;
         }
         .claude-home-article-status {
           min-height: 180px;
-        }
-        .claude-home-article-loading > span {
-          min-height: 68px;
         }
       }
       @media (max-width: 1023px) {

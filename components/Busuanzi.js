@@ -1,26 +1,33 @@
 import busuanzi from '@/lib/plugins/busuanzi'
 import { useRouter } from 'next/router'
 import { useGlobal } from '@/lib/global'
-// import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 
-let path = ''
-
-export default function Busuanzi () {
+export default function Busuanzi() {
   const { theme } = useGlobal()
   const router = useRouter()
-  router.events.on('routeChangeComplete', (url, option) => {
-    if (url !== path) {
-      path = url
+
+  useEffect(() => {
+    const handleRouteChange = () => {
       busuanzi.fetch()
     }
-  })
 
-  // 更换主题时更新
+    busuanzi.fetch()
+    router.events.on('routeChangeComplete', handleRouteChange)
+
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange)
+      busuanzi.cancel()
+    }
+  }, [router.events])
+
+  // Switching themes recreates the counter DOM, so restore the last known data
+  // without recording an extra page view.
   useEffect(() => {
     if (theme) {
-      busuanzi.fetch()
+      busuanzi.renderCached()
     }
   }, [theme])
+
   return null
 }

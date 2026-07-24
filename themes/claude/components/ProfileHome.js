@@ -1,13 +1,9 @@
 import SmartLink from '@/components/SmartLink'
-import { siteConfig } from '@/lib/config'
-import counter from '@/lib/plugins/busuanzi'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
 const HOME_ARTICLE_COUNT = 5
-const POPULAR_CANDIDATE_LIMIT = 50
-const POPULAR_READ_CONCURRENCY = 4
 const CONTRIBUTION_LEVEL_THRESHOLDS = {
   level2: 2,
   level3: 3,
@@ -165,44 +161,6 @@ const formatPostDate = post => {
   return `${year}.${month}.${day}`
 }
 
-const getCanonicalPostUrl = (post, siteUrl) => {
-  try {
-    const url = new URL(post?.href || post?.slug || '', siteUrl)
-    url.search = ''
-    url.hash = ''
-    return url.toString()
-  } catch {
-    return ''
-  }
-}
-
-const readPopularityWithConcurrency = async posts => {
-  const rankedPosts = new Array(posts.length)
-  let cursor = 0
-
-  const worker = async () => {
-    while (cursor < posts.length) {
-      const index = cursor
-      cursor += 1
-      const post = posts[index]
-      const counts = await counter.read({ url: post.counterUrl })
-      rankedPosts[index] = counts
-        ? {
-            ...post,
-            pageViews: counts.page_pv
-          }
-        : null
-    }
-  }
-
-  const workers = Array.from(
-    { length: Math.min(POPULAR_READ_CONCURRENCY, posts.length) },
-    worker
-  )
-  await Promise.all(workers)
-  return rankedPosts.filter(Boolean)
-}
-
 export default function ProfileHome(props) {
   const {
     posts = [],
@@ -214,11 +172,6 @@ export default function ProfileHome(props) {
   const tooltipTimerRef = useRef(null)
   const [contribCellSize, setContribCellSize] = useState(11)
   const [heatmapTooltip, setHeatmapTooltip] = useState(null)
-  const [popularState, setPopularState] = useState({
-    status: 'loading',
-    posts: []
-  })
-  const siteUrl = siteConfig('LINK', 'https://www.yyshow.xyz')
   const postCandidates = Array.isArray(homePostCandidates)
     ? homePostCandidates
     : posts
@@ -249,62 +202,21 @@ export default function ProfileHome(props) {
           href: post.href,
           category: post.category || '',
           dateLabel: formatPostDate(post),
-          publishedAt: publishedAt?.getTime() || 0,
-          counterUrl: getCanonicalPostUrl(post, siteUrl)
+          publishedAt: publishedAt?.getTime() || 0
         }
       })
-      .filter(post => post.counterUrl)
       .sort((a, b) => {
         if (b.publishedAt !== a.publishedAt) {
           return b.publishedAt - a.publishedAt
         }
         return a.title.localeCompare(b.title, 'zh-CN')
       })
-  }, [postCandidates, siteUrl])
+  }, [postCandidates])
 
   const latestArticles = useMemo(
     () => articlePosts.slice(0, HOME_ARTICLE_COUNT),
     [articlePosts]
   )
-
-  useEffect(() => {
-    let cancelled = false
-    const candidates = articlePosts.slice(0, POPULAR_CANDIDATE_LIMIT)
-
-    if (!candidates.length) {
-      setPopularState({ status: 'empty', posts: [] })
-      return undefined
-    }
-
-    setPopularState({ status: 'loading', posts: [] })
-
-    readPopularityWithConcurrency(candidates)
-      .then(rankedPosts => {
-        if (cancelled) return
-        const popularPosts = rankedPosts
-          .sort((a, b) => {
-            if (b.pageViews !== a.pageViews) {
-              return b.pageViews - a.pageViews
-            }
-            return b.publishedAt - a.publishedAt
-          })
-          .slice(0, HOME_ARTICLE_COUNT)
-
-        setPopularState({
-          status: popularPosts.length ? 'ready' : 'unavailable',
-          posts: popularPosts
-        })
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPopularState({ status: 'unavailable', posts: [] })
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [articlePosts])
 
   const timelinePosts = useMemo(() => {
     return postCandidates
@@ -794,23 +706,13 @@ export default function ProfileHome(props) {
               </section>
             </div>
 
-            <div className='claude-home-articles-grid'>
+            <div className='claude-home-articles'>
               <section className='claude-home-article-panel'>
                 <div className='claude-home-article-panel-header'>
-                  <div>
-                    <h2 className='claude-home-article-panel-title'>
-                      <i className='far fa-clock' aria-hidden='true' />
-                      最新文章
-                    </h2>
-                    <p>最近发布的学习与开发记录</p>
-                  </div>
-                  <SmartLink
-                    href='/archive'
-                    className='claude-home-article-all-link'
-                  >
-                    全部
-                    <i className='fas fa-chevron-right' aria-hidden='true' />
-                  </SmartLink>
+                  <h2 className='claude-home-article-panel-title'>
+                    <i className='far fa-clock' aria-hidden='true' />
+                    最新文章
+                  </h2>
                 </div>
 
                 {latestArticles.length > 0 ? (
@@ -848,87 +750,6 @@ export default function ProfileHome(props) {
                 ) : (
                   <div className='claude-home-article-status'>
                     还没有已发布文章
-                  </div>
-                )}
-              </section>
-
-              <section className='claude-home-article-panel'>
-                <div className='claude-home-article-panel-header'>
-                  <div>
-                    <h2 className='claude-home-article-panel-title'>
-                      <i className='fas fa-fire' aria-hidden='true' />
-                      热门文章
-                    </h2>
-                    <p>按真实文章阅读量排序</p>
-                  </div>
-                  <span className='claude-home-article-live'>
-                    <i aria-hidden='true' />
-                    实时热度
-                  </span>
-                </div>
-
-                {popularState.status === 'loading' && (
-                  <div
-                    className='claude-home-article-loading'
-                    aria-label='正在读取文章热度'
-                  >
-                    {Array.from({ length: HOME_ARTICLE_COUNT }, (_, index) => (
-                      <span key={`popular-loading-${index}`} />
-                    ))}
-                  </div>
-                )}
-
-                {popularState.status === 'ready' && (
-                  <ol className='claude-home-article-list'>
-                    {popularState.posts.map((post, index) => (
-                      <li key={`popular-${post.id}`}>
-                        <SmartLink
-                          href={post.href}
-                          className='claude-home-article-row'
-                        >
-                          <span
-                            className={`claude-home-article-rank ${
-                              index < 3 ? 'is-top' : ''
-                            }`}
-                          >
-                            {String(index + 1).padStart(2, '0')}
-                          </span>
-                          <span className='claude-home-article-content'>
-                            <span className='claude-home-article-title'>
-                              {post.title}
-                            </span>
-                            <span className='claude-home-article-meta'>
-                              <span>
-                                <i className='far fa-eye' aria-hidden='true' />
-                                {post.pageViews.toLocaleString('zh-CN')} 次阅读
-                              </span>
-                              {post.category && (
-                                <span className='claude-home-article-category'>
-                                  {post.category}
-                                </span>
-                              )}
-                            </span>
-                          </span>
-                          <i
-                            className='fas fa-arrow-right claude-home-article-arrow'
-                            aria-hidden='true'
-                          />
-                        </SmartLink>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-
-                {popularState.status === 'empty' && (
-                  <div className='claude-home-article-status'>
-                    还没有可统计的文章
-                  </div>
-                )}
-
-                {popularState.status === 'unavailable' && (
-                  <div className='claude-home-article-status'>
-                    <i className='fas fa-signal' aria-hidden='true' />
-                    热度数据暂时不可用
                   </div>
                 )}
               </section>

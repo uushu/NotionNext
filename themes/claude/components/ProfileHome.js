@@ -421,6 +421,15 @@ export default function ProfileHome(props) {
         })
         lastMonthKey = markerKey
       }
+
+      // 滚动一年的首列通常只包含上个月末尾的几天。与 GitHub 原版一致，
+      // 当首月和次月标签相邻时隐藏这个不完整月份，避免出现 “JulAug”。
+      if (
+        monthMarkers.length > 1 &&
+        monthMarkers[1].weekIndex - monthMarkers[0].weekIndex < 2
+      ) {
+        monthMarkers.shift()
+      }
     }
 
     return { cells, weekCount, monthMarkers }
@@ -434,14 +443,6 @@ export default function ProfileHome(props) {
   const handleSelectYear = year => {
     setSelectedYear(year)
     setIsYearModeActive(true)
-  }
-
-  const handleSelectYearFromDropdown = (year, event) => {
-    handleSelectYear(year)
-    const details = event?.currentTarget?.closest('details')
-    if (details && details.hasAttribute('open')) {
-      details.removeAttribute('open')
-    }
   }
 
   const clearHeatmapTooltipTimer = () => {
@@ -560,65 +561,7 @@ export default function ProfileHome(props) {
         <div className='claude-profile-home-timeline'>
           <div className='claude-profile-home-timeline-main'>
             <div className='claude-contrib-section'>
-              <div className='claude-contrib-header'>
-                <h2 className='claude-contrib-title'>{contributionTitle}</h2>
-                <details className='claude-activity-year-dropdown'>
-                  <summary className='claude-activity-year-summary'>
-                    <span className='claude-activity-year-summary-label'>
-                      Year:
-                    </span>
-                    <span className='claude-activity-year-summary-main'>
-                      <span className='claude-activity-year-summary-value'>
-                        {activeYear}
-                      </span>
-                      <span
-                        className='Button-visual Button-trailingAction claude-activity-year-summary-caret'
-                        aria-hidden='true'
-                      >
-                        <svg
-                          aria-hidden='true'
-                          height='16'
-                          viewBox='0 0 16 16'
-                          width='16'
-                          className='octicon octicon-triangle-down'
-                        >
-                          <path d='m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z' />
-                        </svg>
-                      </span>
-                    </span>
-                  </summary>
-                  <ul className='claude-activity-year-menu'>
-                    {years.map(year => {
-                      const isActive = year === activeYear
-                      return (
-                        <li key={`activity-year-${year}`}>
-                          <button
-                            type='button'
-                            className='claude-activity-year-option'
-                            onClick={event =>
-                              handleSelectYearFromDropdown(year, event)
-                            }
-                          >
-                            <span
-                              className='claude-activity-year-option-check'
-                              aria-hidden='true'
-                            >
-                              {isActive ? (
-                                <svg viewBox='0 0 16 16' width='16' height='16'>
-                                  <path d='M13.78 3.97a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0l-3.25-3.25a.75.75 0 1 1 1.06-1.06L6 10.69l6.72-6.72a.75.75 0 0 1 1.06 0Z' />
-                                </svg>
-                              ) : (
-                                <span />
-                              )}
-                            </span>
-                            <span>{year}</span>
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </details>
-              </div>
+              <h2 className='claude-contrib-title'>{contributionTitle}</h2>
               <section
                 className='claude-contrib-card'
                 style={{

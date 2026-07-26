@@ -1114,17 +1114,6 @@ const Style = () => {
         align-items: center;
         gap: 0.25rem;
       }
-      .claude-contrib-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        margin-bottom: 8px;
-      }
-      .claude-contrib-header .claude-contrib-title {
-        height: auto;
-        margin: 0;
-      }
       .claude-home-articles {
         min-width: 0;
         margin-top: clamp(2.5rem, 4vw, 3rem);

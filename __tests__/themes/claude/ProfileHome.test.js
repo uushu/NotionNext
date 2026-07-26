@@ -24,6 +24,14 @@ const posts = Array.from({ length: 6 }, (_, index) => {
 })
 
 describe('Claude ProfileHome latest articles', () => {
+  beforeAll(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-26T12:00:00+08:00'))
+  })
+
+  afterAll(() => {
+    jest.useRealTimers()
+  })
+
   it('shows only the five most recent articles', () => {
     render(<ProfileHome posts={posts} homePostCandidates={posts} />)
 
@@ -42,5 +50,22 @@ describe('Claude ProfileHome latest articles', () => {
       '文章 1'
     )
     expect(within(articleSection).queryByText('文章 6')).not.toBeInTheDocument()
+  })
+
+  it('keeps the original heatmap structure and omits a colliding partial month label', () => {
+    const { container } = render(
+      <ProfileHome posts={posts} homePostCandidates={posts} />
+    )
+    const contributionSection = container.querySelector(
+      '.claude-contrib-section'
+    )
+    const monthLabels = Array.from(
+      contributionSection.querySelectorAll('.claude-contrib-months span')
+    ).map(node => node.textContent)
+
+    expect(
+      contributionSection.querySelector('.claude-contrib-header')
+    ).not.toBeInTheDocument()
+    expect(monthLabels.slice(0, 2)).toEqual(['Aug', 'Sep'])
   })
 })

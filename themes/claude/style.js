@@ -73,11 +73,11 @@ const Style = () => {
         --claude-home-card-bg: #F6F8FA;
         --claude-home-card-border: var(--claude-gh-border);
         --claude-home-link: var(--claude-gh-blue-bg);
-        --claude-contrib-l0: #F1EEE9;
-        --claude-contrib-l1: #F3C8B9;
-        --claude-contrib-l2: #EAA88F;
-        --claude-contrib-l3: #DA7756;
-        --claude-contrib-l4: #A94F35;
+        --claude-contrib-l0: #EFF2F5;
+        --claude-contrib-l1: #ACEEBB;
+        --claude-contrib-l2: #4AC26B;
+        --claude-contrib-l3: #2DA44E;
+        --claude-contrib-l4: #116329;
         --claude-contrib-border: #1F23280D;
         --claude-contrib-label: var(--claude-gh-fg-default);
         --claude-code-bg: var(--claude-bg);
@@ -160,11 +160,11 @@ const Style = () => {
         --claude-profile-contact-hover: var(--claude-gh-fg-default);
         --claude-home-card-bg: rgb(255 255 255 / 0.03);
         --claude-home-card-border: rgb(61, 68, 77);
-        --claude-contrib-l0: #2C2A26;
-        --claude-contrib-l1: #614338;
-        --claude-contrib-l2: #8E5D4A;
-        --claude-contrib-l3: #C07A5D;
-        --claude-contrib-l4: #E4AA8E;
+        --claude-contrib-l0: #151B23;
+        --claude-contrib-l1: #033A16;
+        --claude-contrib-l2: #196C2E;
+        --claude-contrib-l3: #2EA043;
+        --claude-contrib-l4: #56D364;
         --claude-contrib-border: var(--claude-profile-border);
         --claude-contrib-label: var(--claude-gh-fg-default);
         --claude-code-bg: var(--claude-bg);
@@ -946,10 +946,8 @@ const Style = () => {
         font-size: 0.95rem;
       }
       .claude-contrib-card {
-        background: var(--claude-bg-secondary);
-        border-color: transparent;
-        border-radius: 14px;
-        padding: 1.1rem 1.15rem 1rem;
+        background: var(--claude-bg);
+        padding: 1rem 1rem 0.875rem;
         --claude-contrib-gap: 3px;
         --claude-contrib-cell-size: 11px;
         --claude-contrib-cell-radius: calc(var(--claude-contrib-cell-size) / 5);
@@ -961,17 +959,17 @@ const Style = () => {
         color: var(--claude-gh-fg-default);
         color-scheme: light;
         display: block;
-        font-family: var(--claude-heading-font);
-        font-size: 22px;
-        font-weight: 600;
-        height: auto;
-        line-height: 1.25;
+        font-family: var(--claude-gh-font-family);
+        font-size: var(--h4-size, 16px);
+        font-weight: 400;
+        height: 24px;
+        line-height: 24px;
         margin-block-start: 0;
         margin-block-end: 8px;
         margin-inline-start: 0;
         margin-inline-end: 0;
         margin-top: 0;
-        margin-bottom: 0;
+        margin-bottom: 8px;
         overflow-wrap: break-word;
         text-size-adjust: 100%;
         unicode-bidi: isolate;
@@ -1118,10 +1116,10 @@ const Style = () => {
       }
       .claude-contrib-header {
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         justify-content: space-between;
         gap: 0.75rem;
-        margin-bottom: 1rem;
+        margin-bottom: 8px;
       }
       .claude-contrib-header .claude-contrib-title {
         height: auto;
@@ -1129,7 +1127,7 @@ const Style = () => {
       }
       .claude-home-articles {
         min-width: 0;
-        margin-top: clamp(2.75rem, 6vw, 4.5rem);
+        margin-top: clamp(2.5rem, 4vw, 3rem);
       }
       .claude-home-article-panel {
         min-width: 0;
@@ -1148,17 +1146,6 @@ const Style = () => {
         font-size: 26px;
         font-weight: 600;
         line-height: 1.25;
-      }
-      .claude-section-kicker {
-        display: block;
-        margin-bottom: 0.3rem;
-        color: var(--claude-accent);
-        font-family: var(--claude-body-font);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        line-height: 1.4;
-        text-transform: uppercase;
       }
       .claude-home-article-list {
         display: grid;
@@ -1786,11 +1773,11 @@ const Style = () => {
       }
       .claude-year-filter-item.active {
         color: var(--claude-year-filter-text-active);
-        background: var(--claude-accent);
+        background: var(--claude-gh-link);
         font-weight: 500;
       }
       .claude-year-filter-item:focus-visible {
-        outline: 2px solid var(--claude-accent);
+        outline: 2px solid var(--claude-gh-link);
         outline-offset: -2px;
       }
       .claude-year-filter-item.active:focus-visible {
@@ -1798,7 +1785,7 @@ const Style = () => {
       }
       @media (max-width: 767px) {
         .claude-home-articles {
-          margin-top: 2.5rem;
+          margin-top: 2rem;
         }
         .claude-home-article-panel-header {
           padding: 0;

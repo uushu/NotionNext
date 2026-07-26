@@ -427,8 +427,8 @@ export default function ProfileHome(props) {
   }, [dayCountMap, heatmapRange, isYearModeActive, selectedYear])
 
   const contributionTitle = isYearModeActive
-    ? `${selectedYear} 年共记录 ${heatmapEvents.length} 次`
-    : `过去一年共记录 ${heatmapEvents.length} 次`
+    ? `${heatmapEvents.length} contributions in ${selectedYear}`
+    : `${heatmapEvents.length} contributions in the last year`
   const activeYear = isYearModeActive ? selectedYear : years[0] || selectedYear
 
   const handleSelectYear = year => {
@@ -561,10 +561,7 @@ export default function ProfileHome(props) {
           <div className='claude-profile-home-timeline-main'>
             <div className='claude-contrib-section'>
               <div className='claude-contrib-header'>
-                <div>
-                  <span className='claude-section-kicker'>学习足迹</span>
-                  <h2 className='claude-contrib-title'>{contributionTitle}</h2>
-                </div>
+                <h2 className='claude-contrib-title'>{contributionTitle}</h2>
                 <details className='claude-activity-year-dropdown'>
                   <summary className='claude-activity-year-summary'>
                     <span className='claude-activity-year-summary-label'>
@@ -712,12 +709,7 @@ export default function ProfileHome(props) {
             <div className='claude-home-articles'>
               <section className='claude-home-article-panel'>
                 <div className='claude-home-article-panel-header'>
-                  <div>
-                    <span className='claude-section-kicker'>最近更新</span>
-                    <h2 className='claude-home-article-panel-title'>
-                      最新文章
-                    </h2>
-                  </div>
+                  <h2 className='claude-home-article-panel-title'>最新文章</h2>
                 </div>
 
                 <div>

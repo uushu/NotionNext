@@ -32,6 +32,11 @@ describe('Claude ProfileHome latest articles', () => {
       .closest('section')
 
     expect(screen.queryByText('热门文章')).not.toBeInTheDocument()
+    expect(screen.queryByText('最近更新')).not.toBeInTheDocument()
+    expect(screen.queryByText('学习足迹')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /contributions in/ })
+    ).toBeInTheDocument()
     expect(within(articleSection).getAllByRole('link')).toHaveLength(5)
     expect(within(articleSection).getAllByRole('link')[0]).toHaveTextContent(
       '文章 1'

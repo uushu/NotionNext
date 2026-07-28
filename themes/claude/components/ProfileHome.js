@@ -37,6 +37,31 @@ const formatDayKey = date => {
   return `${year}-${month}-${day}`
 }
 
+export const deduplicateContributionEvents = events => {
+  const latestEventByPostAndDay = new Map()
+
+  events.forEach(event => {
+    if (
+      !event?.postId ||
+      !(event.date instanceof Date) ||
+      Number.isNaN(event.date.getTime())
+    ) {
+      return
+    }
+
+    const key = `${event.postId}:${formatDayKey(event.date)}`
+    const previousEvent = latestEventByPostAndDay.get(key)
+    if (
+      !previousEvent ||
+      event.date.getTime() >= previousEvent.date.getTime()
+    ) {
+      latestEventByPostAndDay.set(key, event)
+    }
+  })
+
+  return Array.from(latestEventByPostAndDay.values())
+}
+
 const startOfWeekSunday = date => {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
@@ -301,10 +326,8 @@ export default function ProfileHome(props) {
           .filter(Boolean)
       : []
 
-    if (persisted.length) {
-      return persisted
-    }
-    return fallbackContributionEvents
+    const events = persisted.length ? persisted : fallbackContributionEvents
+    return deduplicateContributionEvents(events)
   }, [persistedContributionEvents, fallbackContributionEvents])
 
   const years = useMemo(() => {

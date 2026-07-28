@@ -1,5 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
-import ProfileHome from '@/themes/claude/components/ProfileHome'
+import ProfileHome, {
+  deduplicateContributionEvents
+} from '@/themes/claude/components/ProfileHome'
 
 jest.mock('@/components/SmartLink', () => ({
   __esModule: true,
@@ -21,6 +23,63 @@ const posts = Array.from({ length: 6 }, (_, index) => {
       start_date: `2026-07-${String(22 - index).padStart(2, '0')}`
     }
   }
+})
+
+describe('Claude ProfileHome contribution events', () => {
+  it('counts a same-day publish and edit once and keeps the latest time', () => {
+    const events = [
+      {
+        type: 'create',
+        postId: 'post-1',
+        date: new Date('2026-07-26T09:00:00+08:00')
+      },
+      {
+        type: 'update',
+        postId: 'post-1',
+        date: new Date('2026-07-26T18:30:00+08:00')
+      }
+    ]
+
+    const result = deduplicateContributionEvents(events)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].type).toBe('update')
+    expect(result[0].date.toISOString()).toBe('2026-07-26T10:30:00.000Z')
+  })
+
+  it('keeps contributions for the same post on different days', () => {
+    const events = [
+      {
+        type: 'create',
+        postId: 'post-1',
+        date: new Date('2026-07-25T18:30:00+08:00')
+      },
+      {
+        type: 'update',
+        postId: 'post-1',
+        date: new Date('2026-07-26T18:30:00+08:00')
+      }
+    ]
+
+    expect(deduplicateContributionEvents(events)).toHaveLength(2)
+  })
+
+  it('counts different posts on the same day separately', () => {
+    const events = [
+      {
+        type: 'update',
+        postId: 'post-1',
+        date: new Date('2026-07-26T18:30:00+08:00')
+      },
+      {
+        type: 'update',
+        postId: 'post-2',
+        date: new Date('2026-07-26T18:30:00+08:00')
+      }
+    ]
+
+    expect(deduplicateContributionEvents(events)).toHaveLength(2)
+  })
 })
 
 describe('Claude ProfileHome latest articles', () => {

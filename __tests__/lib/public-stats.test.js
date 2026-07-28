@@ -41,6 +41,13 @@ describe('public visitor statistics', () => {
         data: { site_pv: 120, page_pv: 'invalid', site_uv: 42 }
       })
     ).toBeNull()
+
+    expect(
+      counter.extractCounterData({
+        status: 'success',
+        data: { site_pv: 120, page_pv: null, site_uv: 42 }
+      })
+    ).toBeNull()
   })
 
   test('renders fresh data and stores it by page', async () => {
@@ -117,5 +124,56 @@ describe('public visitor statistics', () => {
     expect(
       document.querySelector('.busuanzi_container_site_pv')
     ).toHaveAttribute('data-counter-state', 'unavailable')
+  })
+
+  test('reads article popularity without recording another page view', async () => {
+    window.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        status: 'success',
+        data: { site_pv: 400, page_pv: 28, site_uv: 160 }
+      })
+    })
+
+    const counts = await counter.read({ url: pageUrl })
+
+    expect(counts).toEqual({ site_pv: 400, page_pv: 28, site_uv: 160 })
+    expect(window.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`?url=${encodeURIComponent(pageUrl)}`),
+      expect.objectContaining({ method: 'GET' })
+    )
+    expect(document.querySelector('.busuanzi_value_page_pv')).toHaveTextContent(
+      '--'
+    )
+  })
+
+  test('reuses cached popularity instead of querying the service again', async () => {
+    window.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        status: 'success',
+        data: { site_pv: 500, page_pv: 35, site_uv: 200 }
+      })
+    })
+
+    await counter.read({ url: pageUrl })
+    const cachedCounts = await counter.read({ url: pageUrl })
+
+    expect(cachedCounts.page_pv).toBe(35)
+    expect(window.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  test('does not treat site totals as an article popularity value', async () => {
+    window.localStorage.setItem(
+      counter.CACHE_KEY,
+      JSON.stringify({
+        site_pv: 500,
+        site_uv: 200,
+        pages: {}
+      })
+    )
+    window.fetch = jest.fn().mockRejectedValue(new Error('network error'))
+
+    await expect(counter.read({ url: pageUrl })).resolves.toBeNull()
   })
 })

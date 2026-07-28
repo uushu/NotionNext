@@ -1,10 +1,9 @@
 import SmartLink from '@/components/SmartLink'
-import { siteConfig } from '@/lib/config'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import CONFIG from '../config'
 
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
+const HOME_ARTICLE_COUNT = 5
 const CONTRIBUTION_LEVEL_THRESHOLDS = {
   level2: 2,
   level3: 3,
@@ -20,7 +19,8 @@ const normalizeDate = value => {
 
 const toTimestampMs = value => {
   if (value === null || value === undefined || value === '') return 0
-  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : 0
+  if (typeof value === 'number')
+    return Number.isFinite(value) ? Math.trunc(value) : 0
   const parsed = Date.parse(String(value))
   return Number.isFinite(parsed) ? parsed : 0
 }
@@ -69,16 +69,20 @@ const getCreatedDate = post => {
   )
 }
 
+const getPublishedDate = post => {
+  return (
+    normalizeDate(post?.date?.start_date) ||
+    normalizeDate(post?.publishDate) ||
+    normalizeDate(post?.createdTime)
+  )
+}
+
 const getUpdatedDate = post => {
   return normalizeDate(post?.lastEditedDate)
 }
 
 const formatMonthLabel = (year, month) => {
   return new Date(year, month, 1).toLocaleString('en-US', { month: 'short' })
-}
-
-const formatTimelineDate = date => {
-  return date.toLocaleString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const getOrdinalSuffix = day => {
@@ -99,23 +103,6 @@ const formatContributionTooltipText = (date, count) => {
   if (count === 0) return `No contributions on ${dateLabel}.`
   if (count === 1) return `1 contribution on ${dateLabel}.`
   return `${count} contributions on ${dateLabel}.`
-}
-
-const formatActivityDayTitle = date => {
-  if (!date) return ''
-  const month = date.toLocaleString('en-US', { month: 'long' })
-  return `${month} ${date.getDate()},`
-}
-
-const parseDayKey = dayKey => {
-  if (!dayKey) return null
-  const parts = String(dayKey).split('-').map(Number)
-  if (parts.length !== 3 || parts.some(Number.isNaN)) return null
-  return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0)
-}
-
-const pluralize = (count, singular, plural = `${singular}s`) => {
-  return count === 1 ? singular : plural
 }
 
 const getLastSlugPart = value => {
@@ -154,13 +141,40 @@ const sanitizeReadmeHtml = html => {
     .replace(/\shref\s*=\s*(['"])\s*javascript:[\s\S]*?\1/gi, ' href="#"')
 }
 
+const formatPostDate = post => {
+  const rawDate =
+    post?.date?.start_date ||
+    post?.publishDay ||
+    post?.publishDate ||
+    post?.lastEditedDay ||
+    post?.lastEditedDate
+  const dateMatch = String(rawDate || '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateMatch) {
+    return `${dateMatch[1]}.${dateMatch[2]}.${dateMatch[3]}`
+  }
+
+  const date = normalizeDate(rawDate)
+  if (!date) return ''
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  return `${year}.${month}.${day}`
+}
+
 export default function ProfileHome(props) {
-  const { posts = [], readmePage, contributionEvents: persistedContributionEvents = [] } = props
+  const {
+    posts = [],
+    homePostCandidates = posts,
+    readmePage,
+    contributionEvents: persistedContributionEvents = []
+  } = props
   const heatmapGridRef = useRef(null)
   const tooltipTimerRef = useRef(null)
   const [contribCellSize, setContribCellSize] = useState(11)
   const [heatmapTooltip, setHeatmapTooltip] = useState(null)
-  const authorName = siteConfig('AUTHOR') || siteConfig('CLAUDE_BLOG_NAME', '', CONFIG) || 'Author'
+  const postCandidates = Array.isArray(homePostCandidates)
+    ? homePostCandidates
+    : posts
 
   const readmeSource = useMemo(() => {
     if (readmePage) return readmePage
@@ -173,16 +187,52 @@ export default function ProfileHome(props) {
   )
   const readmeExcerpt = readmeSource?.excerpt || ''
 
+  const articlePosts = useMemo(() => {
+    return postCandidates
+      .filter(post => post?.href && !isReadmeLikePage(post))
+      .map((post, index) => {
+        const publishedAt = getPublishedDate(post)
+        return {
+          id:
+            post.id ||
+            post.href ||
+            post.slug ||
+            `${post.title || 'untitled'}-${index}`,
+          title: post.title || '未命名文章',
+          href: post.href,
+          category: post.category || '',
+          dateLabel: formatPostDate(post),
+          publishedAt: publishedAt?.getTime() || 0
+        }
+      })
+      .sort((a, b) => {
+        if (b.publishedAt !== a.publishedAt) {
+          return b.publishedAt - a.publishedAt
+        }
+        return a.title.localeCompare(b.title, 'zh-CN')
+      })
+  }, [postCandidates])
+
+  const latestArticles = useMemo(
+    () => articlePosts.slice(0, HOME_ARTICLE_COUNT),
+    [articlePosts]
+  )
+
   const timelinePosts = useMemo(() => {
-    return posts
+    return postCandidates
       .map((post, index) => {
         const createdAt = getCreatedDate(post)
         const updatedAt = getUpdatedDate(post)
         if (!createdAt && !updatedAt) return null
 
-        const postId = post.id || post.href || post.slug || `${post.title || 'untitled'}-${index}`
+        const postId =
+          post.id ||
+          post.href ||
+          post.slug ||
+          `${post.title || 'untitled'}-${index}`
         const hasUpdateEvent =
-          Boolean(updatedAt) && (!createdAt || updatedAt.getTime() !== createdAt.getTime())
+          Boolean(updatedAt) &&
+          (!createdAt || updatedAt.getTime() !== createdAt.getTime())
 
         return {
           id: postId,
@@ -194,7 +244,7 @@ export default function ProfileHome(props) {
         }
       })
       .filter(Boolean)
-  }, [posts])
+  }, [postCandidates])
 
   const fallbackContributionEvents = useMemo(() => {
     const events = []
@@ -232,7 +282,10 @@ export default function ProfileHome(props) {
               event?.repositoryId || event?.identifier || event?.postId
             )
             const timestampMs = toTimestampMs(
-              event?.timestampMs || event?.timestamp || event?.date || event?.time
+              event?.timestampMs ||
+                event?.timestamp ||
+                event?.date ||
+                event?.time
             )
             const date = timestampMs ? new Date(timestampMs) : null
             if (!postId || !date) return null
@@ -255,14 +308,17 @@ export default function ProfileHome(props) {
   }, [persistedContributionEvents, fallbackContributionEvents])
 
   const years = useMemo(() => {
-    const yearSet = new Set(contributionEvents.map(event => event.date.getFullYear()))
+    const yearSet = new Set(
+      contributionEvents.map(event => event.date.getFullYear())
+    )
     yearSet.add(new Date().getFullYear())
     return Array.from(yearSet).sort((a, b) => b - a)
   }, [contributionEvents])
 
-  const [selectedYear, setSelectedYear] = useState(() => years[0] || new Date().getFullYear())
+  const [selectedYear, setSelectedYear] = useState(
+    () => years[0] || new Date().getFullYear()
+  )
   const [isYearModeActive, setIsYearModeActive] = useState(false)
-  const [selectedActivityDayKey, setSelectedActivityDayKey] = useState('')
 
   useEffect(() => {
     if (!years.includes(selectedYear)) {
@@ -270,12 +326,6 @@ export default function ProfileHome(props) {
       setIsYearModeActive(false)
     }
   }, [years, selectedYear])
-
-  const yearEvents = useMemo(() => {
-    return contributionEvents
-      .filter(event => event.date.getFullYear() === selectedYear)
-      .sort((a, b) => b.date - a.date)
-  }, [contributionEvents, selectedYear])
 
   const heatmapRange = useMemo(() => {
     if (isYearModeActive) {
@@ -339,7 +389,8 @@ export default function ProfileHome(props) {
       for (let month = 0; month < 12; month++) {
         const firstDayOfMonth = new Date(selectedYear, month, 1)
         const monthWeekIndex = Math.floor(
-          (startOfWeekSunday(firstDayOfMonth).getTime() - start.getTime()) / MS_PER_WEEK
+          (startOfWeekSunday(firstDayOfMonth).getTime() - start.getTime()) /
+            MS_PER_WEEK
         )
         if (monthWeekIndex < 0 || monthWeekIndex >= weekCount) continue
         if (monthWeekIndex === lastWeekIndex) continue
@@ -370,6 +421,15 @@ export default function ProfileHome(props) {
         })
         lastMonthKey = markerKey
       }
+
+      // 滚动一年的首列通常只包含上个月末尾的几天。与 GitHub 原版一致，
+      // 当首月和次月标签相邻时隐藏这个不完整月份，避免出现 “JulAug”。
+      if (
+        monthMarkers.length > 1 &&
+        monthMarkers[1].weekIndex - monthMarkers[0].weekIndex < 2
+      ) {
+        monthMarkers.shift()
+      }
     }
 
     return { cells, weekCount, monthMarkers }
@@ -378,26 +438,11 @@ export default function ProfileHome(props) {
   const contributionTitle = isYearModeActive
     ? `${heatmapEvents.length} contributions in ${selectedYear}`
     : `${heatmapEvents.length} contributions in the last year`
-  const activeYear = isYearModeActive ? selectedYear : (years[0] || selectedYear)
+  const activeYear = isYearModeActive ? selectedYear : years[0] || selectedYear
 
   const handleSelectYear = year => {
     setSelectedYear(year)
     setIsYearModeActive(true)
-    setSelectedActivityDayKey('')
-  }
-
-  const handleSelectYearFromDropdown = (year, event) => {
-    handleSelectYear(year)
-    const details = event?.currentTarget?.closest('details')
-    if (details && details.hasAttribute('open')) {
-      details.removeAttribute('open')
-    }
-  }
-
-  const handleSelectActivityDay = cell => {
-    if (isYearModeActive && !cell.inRange) return
-    const dayKey = formatDayKey(cell.date)
-    setSelectedActivityDayKey(prev => (prev === dayKey ? '' : dayKey))
   }
 
   const clearHeatmapTooltipTimer = () => {
@@ -408,7 +453,8 @@ export default function ProfileHome(props) {
   }
 
   const getTooltipAnchorFromCell = target => {
-    if (!target || typeof target.getBoundingClientRect !== 'function') return null
+    if (!target || typeof target.getBoundingClientRect !== 'function')
+      return null
     const rect = target.getBoundingClientRect()
     return {
       x: rect.left + rect.width / 2,
@@ -460,119 +506,6 @@ export default function ProfileHome(props) {
       clearHeatmapTooltipTimer()
     }
   }, [])
-
-  const selectedActivityDayDate = useMemo(
-    () => parseDayKey(selectedActivityDayKey),
-    [selectedActivityDayKey]
-  )
-
-  const activitySourceEvents = useMemo(() => {
-    if (!selectedActivityDayKey) return yearEvents
-    return heatmapEvents.filter(event => formatDayKey(event.date) === selectedActivityDayKey)
-  }, [selectedActivityDayKey, yearEvents, heatmapEvents])
-
-  const activityGroups = useMemo(() => {
-    const groupMap = new Map()
-    const isDailyMode = Boolean(selectedActivityDayKey)
-
-    activitySourceEvents.forEach(event => {
-      const eventYear = event.date.getFullYear()
-      const eventMonth = event.date.getMonth()
-      const eventDay = event.date.getDate()
-      const groupKey = isDailyMode
-        ? formatDayKey(event.date)
-        : `${eventYear}-${String(eventMonth + 1).padStart(2, '0')}`
-
-      if (!groupMap.has(groupKey)) {
-        groupMap.set(groupKey, {
-          groupKey,
-          monthLabel: isDailyMode
-            ? formatActivityDayTitle(event.date)
-            : event.date.toLocaleString('en-US', { month: 'long' }),
-          yearLabel: String(eventYear),
-          sortKey: isDailyMode
-            ? new Date(eventYear, eventMonth, eventDay).getTime()
-            : eventYear * 12 + eventMonth,
-          updateEvents: [],
-          createEvents: []
-        })
-      }
-
-      const group = groupMap.get(groupKey)
-      if (event.type === 'update') {
-        group.updateEvents.push(event)
-      } else {
-        group.createEvents.push(event)
-      }
-    })
-
-    return Array.from(groupMap.values())
-      .sort((a, b) => b.sortKey - a.sortKey)
-      .map(group => {
-        const updateRepoMap = new Map()
-
-        group.updateEvents.forEach(event => {
-          const existing = updateRepoMap.get(event.postId)
-          if (existing) {
-            existing.commitCount += 1
-            if (event.date > existing.updatedAt) {
-              existing.updatedAt = event.date
-            }
-            return
-          }
-
-          updateRepoMap.set(event.postId, {
-            id: event.postId,
-            title: event.title,
-            href: event.href,
-            commitCount: 1,
-            updatedAt: event.date
-          })
-        })
-
-        const updateRepositories = Array.from(updateRepoMap.values()).sort((a, b) => {
-          if (b.commitCount !== a.commitCount) return b.commitCount - a.commitCount
-          if (b.updatedAt.getTime() !== a.updatedAt.getTime()) {
-            return b.updatedAt - a.updatedAt
-          }
-          return a.title.localeCompare(b.title)
-        })
-
-        const createdRepositories = group.createEvents
-          .map(event => ({
-            id: event.postId,
-            title: event.title,
-            href: event.href,
-            createdAt: event.date
-          }))
-          .sort((a, b) => {
-            if (b.createdAt.getTime() !== a.createdAt.getTime()) {
-              return b.createdAt - a.createdAt
-            }
-            return a.title.localeCompare(b.title)
-          })
-
-        return {
-          groupKey: group.groupKey,
-          monthLabel: group.monthLabel,
-          yearLabel: group.yearLabel,
-          commitSummary: updateRepositories.length
-            ? {
-                commitCount: group.updateEvents.length,
-                repositoryCount: updateRepositories.length,
-                repositories: updateRepositories
-              }
-            : null,
-          createSummary: createdRepositories.length
-            ? {
-                repositoryCount: createdRepositories.length,
-                repositories: createdRepositories
-              }
-            : null
-        }
-      })
-      .filter(group => group.commitSummary || group.createSummary)
-  }, [activitySourceEvents, selectedActivityDayKey])
 
   useEffect(() => {
     const gridEl = heatmapGridRef.current
@@ -634,7 +567,8 @@ export default function ProfileHome(props) {
                 style={{
                   '--claude-contrib-week-count': String(heatmapData.weekCount),
                   '--claude-contrib-cell-size': `${contribCellSize}px`
-                }}>
+                }}
+              >
                 <div className='claude-contrib-scroll'>
                   <div className='claude-contrib-canvas'>
                     <div className='claude-contrib-months'>
@@ -643,7 +577,8 @@ export default function ProfileHome(props) {
                           key={marker.key}
                           style={{
                             '--claude-marker-week': String(marker.weekIndex)
-                          }}>
+                          }}
+                        >
                           {marker.label}
                         </span>
                       ))}
@@ -658,9 +593,12 @@ export default function ProfileHome(props) {
                       <div ref={heatmapGridRef} className='claude-contrib-grid'>
                         {heatmapData.cells.map(cell => {
                           const isFutureCellInLastYearMode =
-                            !isYearModeActive && !cell.inRange && cell.date > heatmapRange.end
+                            !isYearModeActive &&
+                            !cell.inRange &&
+                            cell.date > heatmapRange.end
                           const isPlaceholder =
-                            (isYearModeActive && !cell.inRange) || isFutureCellInLastYearMode
+                            (isYearModeActive && !cell.inRange) ||
+                            isFutureCellInLastYearMode
                           return (
                             <div
                               key={cell.key}
@@ -669,10 +607,13 @@ export default function ProfileHome(props) {
                                   ? 'is-placeholder'
                                   : `level-${getHeatmapLevel(cell.count)}`
                               }`}
-                              onMouseEnter={event => showHeatmapTooltip(event, cell)}
-                              onMouseMove={event => moveHeatmapTooltip(event, cell)}
+                              onMouseEnter={event =>
+                                showHeatmapTooltip(event, cell)
+                              }
+                              onMouseMove={event =>
+                                moveHeatmapTooltip(event, cell)
+                              }
                               onMouseLeave={hideHeatmapTooltip}
-                              onClick={() => handleSelectActivityDay(cell)}
                               aria-hidden={isPlaceholder}
                             />
                           )
@@ -688,7 +629,8 @@ export default function ProfileHome(props) {
                     style={{
                       left: `${heatmapTooltip.x}px`,
                       top: `${heatmapTooltip.y}px`
-                    }}>
+                    }}
+                  >
                     {heatmapTooltip.text}
                   </div>
                 )}
@@ -707,235 +649,58 @@ export default function ProfileHome(props) {
               </section>
             </div>
 
-            <div className='claude-activity-section'>
-              <div className='claude-activity-header'>
-                <h2 className='claude-activity-title'>Contribution activity</h2>
-                <details className='claude-activity-year-dropdown'>
-                  <summary className='claude-activity-year-summary'>
-                    <span className='claude-activity-year-summary-label'>Year:</span>
-                    <span className='claude-activity-year-summary-main'>
-                      <span className='claude-activity-year-summary-value'>{activeYear}</span>
-                      <span
-                        className='Button-visual Button-trailingAction claude-activity-year-summary-caret'
-                        aria-hidden='true'>
-                        <svg
-                          aria-hidden='true'
-                          height='16'
-                          viewBox='0 0 16 16'
-                          version='1.1'
-                          width='16'
-                          data-view-component='true'
-                          className='octicon octicon-triangle-down'>
-                          <path d='m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z' />
-                        </svg>
-                      </span>
-                    </span>
-                  </summary>
-                  <ul className='claude-activity-year-menu'>
-                    {years.map(year => {
-                      const isActive = year === activeYear
-                      return (
-                        <li key={`activity-year-${year}`}>
-                          <button
-                            type='button'
-                            className='claude-activity-year-option'
-                            onClick={event => handleSelectYearFromDropdown(year, event)}>
-                            <span className='claude-activity-year-option-check' aria-hidden='true'>
-                              {isActive ? (
-                                <svg viewBox='0 0 16 16' width='16' height='16'>
-                                  <path d='M13.78 3.97a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0l-3.25-3.25a.75.75 0 1 1 1.06-1.06L6 10.69l6.72-6.72a.75.75 0 0 1 1.06 0Z' />
-                                </svg>
-                              ) : (
-                                <span />
-                              )}
+            <div className='claude-home-articles'>
+              <section className='claude-home-article-panel'>
+                <div className='claude-home-article-panel-header'>
+                  <h2 className='claude-home-article-panel-title'>最新文章</h2>
+                </div>
+
+                <div>
+                  {latestArticles.length > 0 && (
+                    <ol className='claude-home-article-list'>
+                      {latestArticles.map(post => (
+                        <li key={post.id}>
+                          <SmartLink
+                            href={post.href}
+                            className='claude-home-article-row'
+                          >
+                            <span
+                              className='claude-home-article-marker'
+                              aria-hidden='true'
+                            >
+                              <i />
                             </span>
-                            <span>{year}</span>
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </details>
-              </div>
-              <section className='claude-activity-card'>
-
-                {activityGroups.length === 0 && (
-                  <div>
-                    {selectedActivityDayDate && (
-                      <div className='claude-activity-group-title'>
-                        <span className='claude-activity-group-title-month'>
-                          {formatActivityDayTitle(selectedActivityDayDate)}
-                        </span>
-                        <span className='claude-activity-group-title-year'>
-                          {selectedActivityDayDate.getFullYear()}
-                        </span>
-                      </div>
-                    )}
-                    <div className='claude-activity-empty-wrap'>
-                      <div className='claude-activity-empty'>
-                        {`${authorName} had no activity during this period.`}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activityGroups.map(group => (
-                  <div key={group.groupKey} className='claude-activity-group'>
-                    <div className='claude-activity-group-title'>
-                      <span className='claude-activity-group-title-month'>{group.monthLabel}</span>
-                      <span className='claude-activity-group-title-year'>{group.yearLabel}</span>
-                    </div>
-                    <ul className='claude-activity-list'>
-                      {group.commitSummary && (
-                        <li className='claude-activity-item claude-activity-item-commit'>
-                          <span className='claude-activity-item-badge' aria-hidden='true'>
-                            <svg
+                            <span className='claude-home-article-content'>
+                              <span className='claude-home-article-title'>
+                                {post.title}
+                              </span>
+                              <span className='claude-home-article-meta'>
+                                {post.dateLabel && (
+                                  <time>{post.dateLabel}</time>
+                                )}
+                                {post.category && (
+                                  <span className='claude-home-article-category'>
+                                    {post.category}
+                                  </span>
+                                )}
+                              </span>
+                            </span>
+                            <i
+                              className='fas fa-arrow-right claude-home-article-arrow'
                               aria-hidden='true'
-                              height='16'
-                              viewBox='0 0 16 16'
-                              version='1.1'
-                              width='16'
-                              className='claude-activity-item-badge-icon'>
-                              <path d='M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0V1.5h-8a1 1 0 0 0-1 1v6.708A2.493 2.493 0 0 1 4.5 9h2.25a.75.75 0 0 1 0 1.5H4.5a1 1 0 0 0 0 2h4.75a.75.75 0 0 1 0 1.5H4.5A2.5 2.5 0 0 1 2 11.5Zm12.23 7.79h-.001l-1.224-1.224v6.184a.75.75 0 0 1-1.5 0V9.066L10.28 10.29a.75.75 0 0 1-1.06-1.061l2.505-2.504a.75.75 0 0 1 1.06 0L15.29 9.23a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018Z' />
-                            </svg>
-                          </span>
-                          <div className='claude-activity-item-body'>
-                            <details className='claude-activity-details' open>
-                              <summary className='claude-activity-summary-toggle'>
-                                <span className='claude-activity-item-summary'>
-                                  Made {group.commitSummary.commitCount}{' '}
-                                  {pluralize(group.commitSummary.commitCount, 'commit')} in{' '}
-                                  {group.commitSummary.repositoryCount}{' '}
-                                  {pluralize(
-                                    group.commitSummary.repositoryCount,
-                                    'repository',
-                                    'repositories'
-                                  )}
-                                </span>
-                                <span className='claude-activity-summary-icons'>
-                                  <span className='Details-content--open'>
-                                    <svg
-                                      aria-label='Collapse'
-                                      className='claude-activity-summary-icon'
-                                      viewBox='0 0 16 16'
-                                      width='16'
-                                      height='16'
-                                      aria-hidden='true'>
-                                      <path d='M10.896 2H8.75V.75a.75.75 0 0 0-1.5 0V2H5.104a.25.25 0 0 0-.177.427l2.896 2.896a.25.25 0 0 0 .354 0l2.896-2.896A.25.25 0 0 0 10.896 2ZM8.75 15.25a.75.75 0 0 1-1.5 0V14H5.104a.25.25 0 0 1-.177-.427l2.896-2.896a.25.25 0 0 1 .354 0l2.896 2.896a.25.25 0 0 1-.177.427H8.75v1.25Zm-6.5-6.5a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 6 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 12 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z' />
-                                    </svg>
-                                  </span>
-                                  <span className='Details-content--closed'>
-                                    <svg
-                                      aria-label='Expand'
-                                      className='claude-activity-summary-icon'
-                                      viewBox='0 0 16 16'
-                                      width='16'
-                                      height='16'
-                                      aria-hidden='true'>
-                                      <path d='m8.177.677 2.896 2.896a.25.25 0 0 1-.177.427H8.75v1.25a.75.75 0 0 1-1.5 0V4H5.104a.25.25 0 0 1-.177-.427L7.823.677a.25.25 0 0 1 .354 0ZM7.25 10.75a.75.75 0 0 1 1.5 0V12h2.146a.25.25 0 0 1 .177.427l-2.896 2.896a.25.25 0 0 1-.354 0l-2.896-2.896A.25.25 0 0 1 5.104 12H7.25v-1.25Zm-5-2a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 6 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 12 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z' />
-                                    </svg>
-                                  </span>
-                                </span>
-                              </summary>
-                              <ul className='claude-activity-sublist'>
-                                {group.commitSummary.repositories.map(repo => (
-                                  <li
-                                    key={`${group.groupKey}-update-${repo.id}`}
-                                    className='claude-activity-subitem claude-activity-subitem-commit'>
-                                    <div className='claude-activity-subitem-main'>
-                                      <SmartLink href={repo.href} className='claude-activity-link'>
-                                        {repo.title}
-                                      </SmartLink>
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            </details>
-                          </div>
+                            />
+                          </SmartLink>
                         </li>
-                      )}
+                      ))}
+                    </ol>
+                  )}
 
-                      {group.createSummary && (
-                        <li className='claude-activity-item claude-activity-item-create'>
-                          <span className='claude-activity-item-badge' aria-hidden='true'>
-                            <svg
-                              aria-hidden='true'
-                              height='16'
-                              viewBox='0 0 16 16'
-                              version='1.1'
-                              width='16'
-                              className='claude-activity-item-badge-icon'>
-                              <path d='M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z' />
-                            </svg>
-                          </span>
-                          <div className='claude-activity-item-body'>
-                            <details className='claude-activity-details' open>
-                              <summary className='claude-activity-summary-toggle'>
-                                <span className='claude-activity-item-summary'>
-                                  Created {group.createSummary.repositoryCount}{' '}
-                                  {pluralize(
-                                    group.createSummary.repositoryCount,
-                                    'repository',
-                                    'repositories'
-                                  )}
-                                </span>
-                                <span className='claude-activity-summary-icons'>
-                                  <span className='Details-content--open'>
-                                    <svg
-                                      aria-label='Collapse'
-                                      className='claude-activity-summary-icon'
-                                      viewBox='0 0 16 16'
-                                      width='16'
-                                      height='16'
-                                      aria-hidden='true'>
-                                      <path d='M10.896 2H8.75V.75a.75.75 0 0 0-1.5 0V2H5.104a.25.25 0 0 0-.177.427l2.896 2.896a.25.25 0 0 0 .354 0l2.896-2.896A.25.25 0 0 0 10.896 2ZM8.75 15.25a.75.75 0 0 1-1.5 0V14H5.104a.25.25 0 0 1-.177-.427l2.896-2.896a.25.25 0 0 1 .354 0l2.896 2.896a.25.25 0 0 1-.177.427H8.75v1.25Zm-6.5-6.5a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 6 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 12 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z' />
-                                    </svg>
-                                  </span>
-                                  <span className='Details-content--closed'>
-                                    <svg
-                                      aria-label='Expand'
-                                      className='claude-activity-summary-icon'
-                                      viewBox='0 0 16 16'
-                                      width='16'
-                                      height='16'
-                                      aria-hidden='true'>
-                                      <path d='m8.177.677 2.896 2.896a.25.25 0 0 1-.177.427H8.75v1.25a.75.75 0 0 1-1.5 0V4H5.104a.25.25 0 0 1-.177-.427L7.823.677a.25.25 0 0 1 .354 0ZM7.25 10.75a.75.75 0 0 1 1.5 0V12h2.146a.25.25 0 0 1 .177.427l-2.896 2.896a.25.25 0 0 1-.354 0l-2.896-2.896A.25.25 0 0 1 5.104 12H7.25v-1.25Zm-5-2a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM6 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 6 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5ZM12 8a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1 0-1.5h.5A.75.75 0 0 1 12 8Zm2.25.75a.75.75 0 0 0 0-1.5h-.5a.75.75 0 0 0 0 1.5h.5Z' />
-                                    </svg>
-                                  </span>
-                                </span>
-                              </summary>
-                              <ul className='claude-activity-sublist'>
-                                {group.createSummary.repositories.map(repo => (
-                                  <li
-                                    key={`${group.groupKey}-create-${repo.id}`}
-                                    className='claude-activity-subitem claude-activity-subitem-create'>
-                                    <div className='claude-activity-subitem-main'>
-                                      <svg
-                                        aria-hidden='true'
-                                        height='16'
-                                        viewBox='0 0 16 16'
-                                        version='1.1'
-                                        width='16'
-                                        className='claude-activity-subitem-icon'>
-                                        <path d='M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z' />
-                                      </svg>
-                                      <SmartLink href={repo.href} className='claude-activity-link'>
-                                        {repo.title}
-                                      </SmartLink>
-                                    </div>
-                                    <time className='claude-activity-date'>
-                                      {formatTimelineDate(repo.createdAt)}
-                                    </time>
-                                  </li>
-                                ))}
-                              </ul>
-                            </details>
-                          </div>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                ))}
+                  {latestArticles.length === 0 && (
+                    <div className='claude-home-article-status'>
+                      还没有已发布文章
+                    </div>
+                  )}
+                </div>
               </section>
             </div>
           </div>
@@ -953,7 +718,8 @@ export default function ProfileHome(props) {
                         aria-current={isActive ? 'true' : undefined}
                         aria-label={`Contribution activity in ${year}`}
                         className={`claude-year-filter-item ${isActive ? 'active' : ''}`}
-                        onClick={() => handleSelectYear(year)}>
+                        onClick={() => handleSelectYear(year)}
+                      >
                         {year}
                       </button>
                     </li>

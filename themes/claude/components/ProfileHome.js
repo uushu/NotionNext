@@ -53,18 +53,6 @@ const calendarDateFromDayKey = dayKey => {
 const getContributionToday = () =>
   calendarDateFromDayKey(formatInstantInContributionTimeZone(new Date()))
 
-const toTimestampMs = value => {
-  if (value === null || value === undefined || value === '') return 0
-  if (typeof value === 'number')
-    return Number.isFinite(value) ? Math.trunc(value) : 0
-  const parsed = Date.parse(String(value))
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-const normalizeRepositoryId = value => {
-  if (!value) return ''
-  return String(value).replace(/-/g, '').trim().toLowerCase()
-}
 
 const formatDayKey = date => formatInstantInContributionTimeZone(date)
 

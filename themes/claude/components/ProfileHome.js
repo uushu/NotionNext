@@ -4,6 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
 const HOME_ARTICLE_COUNT = 5
+const CONTRIBUTION_TIME_ZONE = 'Asia/Shanghai'
+const CONTRIBUTION_DAY_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: CONTRIBUTION_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+})
 const CONTRIBUTION_LEVEL_THRESHOLDS = {
   level2: 2,
   level3: 3,
@@ -16,6 +23,35 @@ const normalizeDate = value => {
   if (Number.isNaN(date.getTime())) return null
   return date
 }
+
+const formatInstantInContributionTimeZone = value => {
+  const date = normalizeDate(value)
+  if (!date) return ''
+  const parts = CONTRIBUTION_DAY_FORMATTER.formatToParts(date)
+  const year = parts.find(part => part.type === 'year')?.value
+  const month = parts.find(part => part.type === 'month')?.value
+  const day = parts.find(part => part.type === 'day')?.value
+  return year && month && day ? `${year}-${month}-${day}` : ''
+}
+
+export const getContributionDayKey = post => {
+  const rawDate =
+    post?.date?.start_date || post?.publishDay || post?.publishDate
+  const dateOnlyMatch = String(rawDate || '').match(
+    /^(\d{4})-(\d{2})-(\d{2})$/
+  )
+  if (dateOnlyMatch) return dateOnlyMatch[0]
+  return formatInstantInContributionTimeZone(rawDate)
+}
+
+const calendarDateFromDayKey = dayKey => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey || '')) return null
+  const [year, month, day] = dayKey.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day, 12))
+}
+
+const getContributionToday = () =>
+  calendarDateFromDayKey(formatInstantInContributionTimeZone(new Date()))
 
 const toTimestampMs = value => {
   if (value === null || value === undefined || value === '') return 0
@@ -30,12 +66,7 @@ const normalizeRepositoryId = value => {
   return String(value).replace(/-/g, '').trim().toLowerCase()
 }
 
-const formatDayKey = date => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+const formatDayKey = date => formatInstantInContributionTimeZone(date)
 
 export const deduplicateContributionEvents = events => {
   const latestEventByPostAndDay = new Map()
@@ -64,17 +95,17 @@ export const deduplicateContributionEvents = events => {
 
 const startOfWeekSunday = date => {
   const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  const offset = d.getDay()
-  d.setDate(d.getDate() - offset)
+  d.setUTCHours(12, 0, 0, 0)
+  const offset = d.getUTCDay()
+  d.setUTCDate(d.getUTCDate() - offset)
   return d
 }
 
 const endOfWeekSaturday = date => {
   const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  const offset = 6 - d.getDay()
-  d.setDate(d.getDate() + offset)
+  d.setUTCHours(12, 0, 0, 0)
+  const offset = 6 - d.getUTCDay()
+  d.setUTCDate(d.getUTCDate() + offset)
   return d
 }
 
@@ -86,13 +117,8 @@ const getHeatmapLevel = count => {
   return 1 // 1 contribution/day
 }
 
-const getCreatedDate = post => {
-  return (
-    normalizeDate(post?.createdTime) ||
-    normalizeDate(post?.publishDate) ||
-    normalizeDate(post?.date?.start_date)
-  )
-}
+const getContributionDate = post =>
+  calendarDateFromDayKey(getContributionDayKey(post))
 
 const getPublishedDate = post => {
   return (
@@ -102,12 +128,11 @@ const getPublishedDate = post => {
   )
 }
 
-const getUpdatedDate = post => {
-  return normalizeDate(post?.lastEditedDate)
-}
-
 const formatMonthLabel = (year, month) => {
-  return new Date(year, month, 1).toLocaleString('en-US', { month: 'short' })
+  return new Date(Date.UTC(year, month, 1, 12)).toLocaleString('en-US', {
+    month: 'short',
+    timeZone: 'UTC'
+  })
 }
 
 const getOrdinalSuffix = day => {
@@ -121,8 +146,11 @@ const getOrdinalSuffix = day => {
 }
 
 const formatContributionTooltipText = (date, count) => {
-  const month = date.toLocaleString('en-US', { month: 'long' })
-  const day = date.getDate()
+  const month = date.toLocaleString('en-US', {
+    month: 'long',
+    timeZone: 'UTC'
+  })
+  const day = date.getUTCDate()
   const dateLabel = `${month} ${day}${getOrdinalSuffix(day)}`
 
   if (count === 0) return `No contributions on ${dateLabel}.`
@@ -190,8 +218,7 @@ export default function ProfileHome(props) {
   const {
     posts = [],
     homePostCandidates = posts,
-    readmePage,
-    contributionEvents: persistedContributionEvents = []
+    readmePage
   } = props
   const heatmapGridRef = useRef(null)
   const tooltipTimerRef = useRef(null)
@@ -246,26 +273,19 @@ export default function ProfileHome(props) {
   const timelinePosts = useMemo(() => {
     return postCandidates
       .map((post, index) => {
-        const createdAt = getCreatedDate(post)
-        const updatedAt = getUpdatedDate(post)
-        if (!createdAt && !updatedAt) return null
+        const contributionDate = getContributionDate(post)
+        if (!contributionDate) return null
 
         const postId =
           post.id ||
           post.href ||
           post.slug ||
           `${post.title || 'untitled'}-${index}`
-        const hasUpdateEvent =
-          Boolean(updatedAt) &&
-          (!createdAt || updatedAt.getTime() !== createdAt.getTime())
-
         return {
           id: postId,
           title: post.title || 'Untitled',
           href: post.href || '#',
-          createdAt,
-          updatedAt,
-          hasUpdateEvent
+          contributionDate
         }
       })
       .filter(Boolean)
@@ -275,77 +295,39 @@ export default function ProfileHome(props) {
     const events = []
 
     timelinePosts.forEach(post => {
-      if (post.createdAt) {
-        events.push({
-          type: 'create',
-          postId: post.id,
-          title: post.title,
-          href: post.href,
-          date: post.createdAt
-        })
-      }
-
-      if (post.hasUpdateEvent && post.updatedAt) {
-        events.push({
-          type: 'update',
-          postId: post.id,
-          title: post.title,
-          href: post.href,
-          date: post.updatedAt
-        })
-      }
+      events.push({
+        type: 'publish',
+        postId: post.id,
+        title: post.title,
+        href: post.href,
+        date: post.contributionDate
+      })
     })
 
     return events
   }, [timelinePosts])
 
-  const contributionEvents = useMemo(() => {
-    const persisted = Array.isArray(persistedContributionEvents)
-      ? persistedContributionEvents
-          .map(event => {
-            const postId = normalizeRepositoryId(
-              event?.repositoryId || event?.identifier || event?.postId
-            )
-            const timestampMs = toTimestampMs(
-              event?.timestampMs ||
-                event?.timestamp ||
-                event?.date ||
-                event?.time
-            )
-            const date = timestampMs ? new Date(timestampMs) : null
-            if (!postId || !date) return null
-
-            return {
-              type: event?.type === 'create' ? 'create' : 'update',
-              postId,
-              title: event?.title || 'Untitled',
-              href: event?.href || '#',
-              date
-            }
-          })
-          .filter(Boolean)
-      : []
-
-    const events = persisted.length ? persisted : fallbackContributionEvents
-    return deduplicateContributionEvents(events)
-  }, [persistedContributionEvents, fallbackContributionEvents])
+  const contributionEvents = useMemo(
+    () => deduplicateContributionEvents(fallbackContributionEvents),
+    [fallbackContributionEvents]
+  )
 
   const years = useMemo(() => {
     const yearSet = new Set(
-      contributionEvents.map(event => event.date.getFullYear())
+      contributionEvents.map(event => event.date.getUTCFullYear())
     )
-    yearSet.add(new Date().getFullYear())
+    yearSet.add(getContributionToday().getUTCFullYear())
     return Array.from(yearSet).sort((a, b) => b - a)
   }, [contributionEvents])
 
   const [selectedYear, setSelectedYear] = useState(
-    () => years[0] || new Date().getFullYear()
+    () => years[0] || getContributionToday().getUTCFullYear()
   )
   const [isYearModeActive, setIsYearModeActive] = useState(false)
 
   useEffect(() => {
     if (!years.includes(selectedYear)) {
-      setSelectedYear(years[0] || new Date().getFullYear())
+      setSelectedYear(years[0] || getContributionToday().getUTCFullYear())
       setIsYearModeActive(false)
     }
   }, [years, selectedYear])
@@ -353,16 +335,15 @@ export default function ProfileHome(props) {
   const heatmapRange = useMemo(() => {
     if (isYearModeActive) {
       return {
-        start: new Date(selectedYear, 0, 1, 0, 0, 0, 0),
-        end: new Date(selectedYear, 11, 31, 23, 59, 59, 999)
+        start: new Date(Date.UTC(selectedYear, 0, 1, 12)),
+        end: new Date(Date.UTC(selectedYear, 11, 31, 12))
       }
     }
 
-    const end = new Date()
+    const end = getContributionToday()
     const start = new Date(end)
-    start.setFullYear(start.getFullYear() - 1)
-    start.setDate(start.getDate() + 1)
-    start.setHours(0, 0, 0, 0)
+    start.setUTCFullYear(start.getUTCFullYear() - 1)
+    start.setUTCDate(start.getUTCDate() + 1)
 
     return { start, end }
   }, [isYearModeActive, selectedYear])
@@ -386,9 +367,7 @@ export default function ProfileHome(props) {
     const start = startOfWeekSunday(heatmapRange.start)
     const end = endOfWeekSaturday(heatmapRange.end)
     const rangeStart = new Date(heatmapRange.start)
-    rangeStart.setHours(0, 0, 0, 0)
     const rangeEnd = new Date(heatmapRange.end)
-    rangeEnd.setHours(0, 0, 0, 0)
     const cells = []
 
     const cursor = new Date(start)
@@ -402,7 +381,7 @@ export default function ProfileHome(props) {
         count: dayCountMap.get(key) || 0,
         inRange
       })
-      cursor.setDate(cursor.getDate() + 1)
+      cursor.setUTCDate(cursor.getUTCDate() + 1)
     }
 
     const weekCount = Math.ceil(cells.length / 7)
@@ -410,7 +389,9 @@ export default function ProfileHome(props) {
     if (isYearModeActive) {
       let lastWeekIndex = -1
       for (let month = 0; month < 12; month++) {
-        const firstDayOfMonth = new Date(selectedYear, month, 1)
+        const firstDayOfMonth = new Date(
+          Date.UTC(selectedYear, month, 1, 12)
+        )
         const monthWeekIndex = Math.floor(
           (startOfWeekSunday(firstDayOfMonth).getTime() - start.getTime()) /
             MS_PER_WEEK
@@ -432,8 +413,8 @@ export default function ProfileHome(props) {
         const weekStartDate = cells[weekIndex * 7]?.date
         if (!weekStartDate) continue
 
-        const markerYear = weekStartDate.getFullYear()
-        const markerMonth = weekStartDate.getMonth()
+        const markerYear = weekStartDate.getUTCFullYear()
+        const markerMonth = weekStartDate.getUTCMonth()
         const markerKey = `${markerYear}-${markerMonth}`
         if (markerKey === lastMonthKey) continue
 

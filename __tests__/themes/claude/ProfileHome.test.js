@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import ProfileHome, {
-  deduplicateContributionEvents
+  deduplicateContributionEvents,
+  getContributionDayKey
 } from '@/themes/claude/components/ProfileHome'
 
 jest.mock('@/components/SmartLink', () => ({
@@ -26,6 +27,22 @@ const posts = Array.from({ length: 6 }, (_, index) => {
 })
 
 describe('Claude ProfileHome contribution events', () => {
+  it('uses the editable article date as the only contribution day', () => {
+    const post = {
+      date: { start_date: '2026-07-30' },
+      publishDate: new Date('2026-07-31T08:00:00+08:00').getTime(),
+      lastEditedDate: '2026-07-31T08:00:00+08:00'
+    }
+
+    expect(getContributionDayKey(post)).toBe('2026-07-30')
+  })
+
+  it('converts timestamp fallbacks with the fixed Asia/Shanghai timezone', () => {
+    expect(
+      getContributionDayKey({ publishDate: '2026-07-31T16:30:00.000Z' })
+    ).toBe('2026-08-01')
+  })
+
   it('counts a same-day publish and edit once and keeps the latest time', () => {
     const events = [
       {

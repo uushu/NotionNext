@@ -3,6 +3,7 @@
 > 适用目录：`themes/claude`（部分修改涉及全局 `pages/_app.js`、`pages/index.js`、`components/SEO.js`）
 >
 > 本文档描述当前 `claude` 主题的实际实现，重点覆盖：
+>
 > 1. 主题特性与视觉设计目标
 > 2. 文章页（Claude Code Docs 风格）与首页（GitHub Profile 风格）
 > 3. 移动端复刻与优化策略
@@ -41,6 +42,7 @@
 
 1.  **配置环境变量**：
     在 `.env` 或 `.env.local` 中添加（完整配置见下文）：
+
     ```bash
     # 启用主题
     NEXT_PUBLIC_THEME=claude  # 或者在notion配置页面中配置
@@ -173,17 +175,17 @@
 
 ### 6.1 输入数据
 
-优先使用持久化事件（`props.contributionEvents`）：
+热力图合并两类事件：
 
-- `type`: `create` 或 `update`
+- 创建贡献：从文章 `date.start_date` 实时推导
+- 修改贡献：读取持久化的 `props.contributionEvents`，只使用 `update`
 - `repositoryId`
 - `timestampMs`
 - `title` / `slug`
 
-如果持久化不可用，则回退到前端从 `posts` 直接推导：
+持久化不可用时仍显示创建贡献，但不会伪造无法保存的修改历史。
 
-- 每篇文章产生一个 `create`（createdAt）
-- 若更新时间与创建时间不同，再产生一个 `update`（updatedAt）
+去重键为“事件类型 + 文章 ID + `Asia/Shanghai` 日期”。因此同篇文章同日创建和修改可计 2 次，同日多次修改只计 1 次。
 
 ### 6.2 统计区间
 
@@ -321,21 +323,17 @@ create index if not exists idx_claude_contrib_snapshots_updated
    - upsert snapshot（冲突键 `repository_id`）
    - 根据“新旧快照差异”生成事件
 4. 拉取事件 `listContributionEvents(limit)`。
-5. 过滤到“昨天为止”：
-   - `filterContributionEventsUntilYesterday`
-   - 当天事件不显示在首页（稳定 UI，避免当天多次刷新抖动）
-6. 写入本地日缓存，返回给前端。
+5. 将全部修改事件返回首页；当天事件也参与标题、格子和 Tooltip 统计。
 
 ### 9.2 事件生成规则（关键）
 
 在 `syncContributionSnapshots` 内：
 
-- 若快照不存在（新文章）：
-  - 创建 `create` 事件（`created_at_ms`）
-  - 如果 `updated_at_ms > created_at_ms`，再创建 `update` 事件
+- 若快照不存在（新文章）：只写入 snapshot，建立修改基线，不生成 update。
 - 若快照已存在：
   - 仅当 `updated_at_ms` 大于旧快照时，新增 `update` 事件
 - 事件写入前按 `event_id` 去重，保证同一逻辑事件只存在一份。
+- 创建贡献不写入事件表，始终由文章当前 `date.start_date` 生成。
 
 ---
 
@@ -424,25 +422,25 @@ create index if not exists idx_claude_contrib_snapshots_updated
 
 以下配置可由环境变量覆盖（`NEXT_PUBLIC_*`），并可被 Notion 配置页同名项再覆盖：
 
-| 配置项 | 默认值 | 说明 |
-|---|---|---|
-| `CLAUDE_BLOG_NAME` | `活字印刷` | 主题主标题 |
-| `CLAUDE_BLOG_NAME_EN` | 同主标题 | 副标题/英文标题 |
-| `CLAUDE_POST_AD_ENABLE` | `false` | 列表插广告 |
-| `CLAUDE_POST_COVER_ENABLE` | `false` | 列表显示封面 |
-| `CLAUDE_ARTICLE_RECOMMEND_POSTS` | `true` | 文章页推荐文章 |
-| `CLAUDE_MENU_CATEGORY` | `true` | 显示分类菜单 |
-| `CLAUDE_MENU_TAG` | `true` | 显示标签菜单 |
-| `CLAUDE_MENU_ARCHIVE` | `true` | 显示归档菜单 |
-| `CLAUDE_TOC_ENABLE` | `true` | 启用右侧目录 |
-| `CLAUDE_TOC_SHOW_LEVEL3` | `true` | 目录显示三级标题 |
-| `CLAUDE_TOC_SCROLL_BEHAVIOR` | `instant` | TOC 点击/联动滚动行为 |
-| `CLAUDE_SUBTITLE_DARK_ONLY` | `false` | 副标题仅暗色显示 |
-| `CLAUDE_PROFILE_AVATAR` | `''` | 侧栏头像 URL |
-| `CLAUDE_FOOTER_COPYRIGHT` | `''` | 自定义页脚版权文案 |
-| `CLAUDE_README_CACHE_ENABLED` | `true` | README 快照缓存开关 |
-| `CLAUDE_CONTRIBUTION_PERSIST_ENABLED` | `true` | Contribution 持久化开关 |
-| `CLAUDE_CONTRIBUTION_EVENT_LIMIT` | `50000` | 拉取事件上限 |
+| 配置项                                | 默认值     | 说明                    |
+| ------------------------------------- | ---------- | ----------------------- |
+| `CLAUDE_BLOG_NAME`                    | `活字印刷` | 主题主标题              |
+| `CLAUDE_BLOG_NAME_EN`                 | 同主标题   | 副标题/英文标题         |
+| `CLAUDE_POST_AD_ENABLE`               | `false`    | 列表插广告              |
+| `CLAUDE_POST_COVER_ENABLE`            | `false`    | 列表显示封面            |
+| `CLAUDE_ARTICLE_RECOMMEND_POSTS`      | `true`     | 文章页推荐文章          |
+| `CLAUDE_MENU_CATEGORY`                | `true`     | 显示分类菜单            |
+| `CLAUDE_MENU_TAG`                     | `true`     | 显示标签菜单            |
+| `CLAUDE_MENU_ARCHIVE`                 | `true`     | 显示归档菜单            |
+| `CLAUDE_TOC_ENABLE`                   | `true`     | 启用右侧目录            |
+| `CLAUDE_TOC_SHOW_LEVEL3`              | `true`     | 目录显示三级标题        |
+| `CLAUDE_TOC_SCROLL_BEHAVIOR`          | `instant`  | TOC 点击/联动滚动行为   |
+| `CLAUDE_SUBTITLE_DARK_ONLY`           | `false`    | 副标题仅暗色显示        |
+| `CLAUDE_PROFILE_AVATAR`               | `''`       | 侧栏头像 URL            |
+| `CLAUDE_FOOTER_COPYRIGHT`             | `''`       | 自定义页脚版权文案      |
+| `CLAUDE_README_CACHE_ENABLED`         | `true`     | README 快照缓存开关     |
+| `CLAUDE_CONTRIBUTION_PERSIST_ENABLED` | `true`     | Contribution 持久化开关 |
+| `CLAUDE_CONTRIBUTION_EVENT_LIMIT`     | `50000`    | 拉取事件上限            |
 
 ---
 
@@ -568,7 +566,8 @@ curl "http://localhost:3000/api/claude/contribution-refresh?token=<token>&revali
 
 2. 当天更新未显示
 
-- 当前逻辑默认过滤“今天”的事件，只显示到昨天（设计行为）
+- 确认首页已在本次 Notion 编辑后重新生成；需要立即同步时调用 Contribution 刷新接口。
+- 确认 Supabase snapshot 中的 `updated_at_ms` 已更新，事件表存在对应 `update`。
 
 3. README 代码块高亮不稳定
 
@@ -626,14 +625,21 @@ const Layout = useMemo(() => getBaseLayoutByTheme(theme), [theme])
 桌面端侧边栏用 `React.memo(() => true)` 包裹：
 
 ```javascript
-const SidebarContent = memo(function SidebarContent(props) {
-  return (
-    <div className='flex flex-col justify-between h-full py-6 px-5'>
-      <div><NavBar {...props} /></div>
-      <div className='mt-auto'><Footer /></div>
-    </div>
-  )
-}, () => true)  // 始终返回 true -> 阻止所有来自父组件的 prop 变化触发重渲染
+const SidebarContent = memo(
+  function SidebarContent(props) {
+    return (
+      <div className='flex flex-col justify-between h-full py-6 px-5'>
+        <div>
+          <NavBar {...props} />
+        </div>
+        <div className='mt-auto'>
+          <Footer />
+        </div>
+      </div>
+    )
+  },
+  () => true
+) // 始终返回 true -> 阻止所有来自父组件的 prop 变化触发重渲染
 ```
 
 - `React.memo` 的第二个参数 `() => true` 表示"props 始终相等"，阻止父组件 re-render 传播。
@@ -662,11 +668,11 @@ function getOrCreateTerminalSession() {
 
 ### 16.3 涉及文件清单
 
-| 文件 | 所属 | 修改内容 |
-|---|---|---|
-| `pages/_app.js` | **全局**（非主题目录） | 移除 `GLayout`，用 `useMemo` 缓存 Layout 引用 |
-| `themes/claude/index.js` | 主题 | 新增 `SidebarContent` memo 组件 |
-| `themes/claude/components/NavBar.js` | 主题 | 终端会话改为模块级缓存 |
+| 文件                                 | 所属                   | 修改内容                                      |
+| ------------------------------------ | ---------------------- | --------------------------------------------- |
+| `pages/_app.js`                      | **全局**（非主题目录） | 移除 `GLayout`，用 `useMemo` 缓存 Layout 引用 |
+| `themes/claude/index.js`             | 主题                   | 新增 `SidebarContent` memo 组件               |
+| `themes/claude/components/NavBar.js` | 主题                   | 终端会话改为模块级缓存                        |
 
 ---
 

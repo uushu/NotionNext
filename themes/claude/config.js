@@ -1,7 +1,6 @@
 const CONFIG = {
   // 博客标题：生产环境可由 Notion 配置中心或环境变量覆盖。
-  CLAUDE_BLOG_NAME:
-    process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME || 'utto的学习屋',
+  CLAUDE_BLOG_NAME: process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME || 'utto的学习屋',
   CLAUDE_BLOG_NAME_EN:
     process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME_EN ||
     process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME ||
@@ -9,9 +8,11 @@ const CONFIG = {
 
   CLAUDE_POST_AD_ENABLE: process.env.NEXT_PUBLIC_CLAUDE_POST_AD_ENABLE || false, // 文章列表是否插入广告
 
-  CLAUDE_POST_COVER_ENABLE: process.env.NEXT_PUBLIC_CLAUDE_POST_COVER_ENABLE || false, // 是否展示博客封面
+  CLAUDE_POST_COVER_ENABLE:
+    process.env.NEXT_PUBLIC_CLAUDE_POST_COVER_ENABLE || false, // 是否展示博客封面
 
-  CLAUDE_ARTICLE_RECOMMEND_POSTS: process.env.NEXT_PUBLIC_CLAUDE_ARTICLE_RECOMMEND_POSTS || true, // 文章详情底部显示推荐
+  CLAUDE_ARTICLE_RECOMMEND_POSTS:
+    process.env.NEXT_PUBLIC_CLAUDE_ARTICLE_RECOMMEND_POSTS || true, // 文章详情底部显示推荐
 
   // 菜单配置
   CLAUDE_MENU_CATEGORY: true, // 显示分类
@@ -20,19 +21,22 @@ const CONFIG = {
 
   // 目录配置
   CLAUDE_TOC_ENABLE: process.env.NEXT_PUBLIC_CLAUDE_TOC_ENABLE !== 'false', // 是否显示目录，默认开启
-  CLAUDE_TOC_SHOW_LEVEL3: process.env.NEXT_PUBLIC_CLAUDE_TOC_SHOW_LEVEL3 !== 'false', // 是否显示第三级目录，默认开启; 设为 false 只显示 L1+L2
-  CLAUDE_TOC_SCROLL_BEHAVIOR: process.env.NEXT_PUBLIC_CLAUDE_TOC_SCROLL_BEHAVIOR || 'instant', // 滚动行为：'smooth' 或 'instant'
+  CLAUDE_TOC_SHOW_LEVEL3:
+    process.env.NEXT_PUBLIC_CLAUDE_TOC_SHOW_LEVEL3 !== 'false', // 是否显示第三级目录，默认开启; 设为 false 只显示 L1+L2
+  CLAUDE_TOC_SCROLL_BEHAVIOR:
+    process.env.NEXT_PUBLIC_CLAUDE_TOC_SCROLL_BEHAVIOR || 'instant', // 滚动行为：'smooth' 或 'instant'
 
   // 副标题配置
-  CLAUDE_SUBTITLE_DARK_ONLY: process.env.NEXT_PUBLIC_CLAUDE_SUBTITLE_DARK_ONLY === 'true', // 副标题在浅色和深色模式下都显示，设为 true 则仅深色模式
+  CLAUDE_SUBTITLE_DARK_ONLY:
+    process.env.NEXT_PUBLIC_CLAUDE_SUBTITLE_DARK_ONLY === 'true', // 副标题在浅色和深色模式下都显示，设为 true 则仅深色模式
 
   // GitHub 侧栏资料卡配置
   CLAUDE_PROFILE_AVATAR: process.env.NEXT_PUBLIC_CLAUDE_PROFILE_AVATAR || '', // 头像URL；留空则回退到 AVATAR/siteInfo.icon
-  CLAUDE_FOOTER_COPYRIGHT: process.env.NEXT_PUBLIC_CLAUDE_FOOTER_COPYRIGHT || '', // 例如：© 2023-2026 Yicheng；留空则使用 SINCE + AUTHOR
+  CLAUDE_FOOTER_COPYRIGHT:
+    process.env.NEXT_PUBLIC_CLAUDE_FOOTER_COPYRIGHT || '', // 例如：© 2023-2026 Yicheng；留空则使用 SINCE + AUTHOR
 
   // 公开访问统计
-  CLAUDE_STATS_ENABLE:
-    process.env.NEXT_PUBLIC_CLAUDE_STATS_ENABLE !== 'false', // 页脚显示访客数、总访问量，文章显示阅读量
+  CLAUDE_STATS_ENABLE: process.env.NEXT_PUBLIC_CLAUDE_STATS_ENABLE !== 'false', // 页脚显示访客数、总访问量，文章显示阅读量
   CLAUDE_SUBSCRIBER_COUNT:
     process.env.NEXT_PUBLIC_CLAUDE_SUBSCRIBER_COUNT || '', // 可选：手动填写订阅人数；留空则不显示
 
@@ -41,10 +45,11 @@ const CONFIG = {
     process.env.NEXT_PUBLIC_CLAUDE_README_CACHE_ENABLED !== 'false',
 
   // Contribution 持久化（可由 Notion 配置文档中的同名字段覆盖）
-  // 依赖 COCKROACH_DATABASE_URL（或 DATABASE_URL）
+  // 依赖 SUPABASE_URL 与 SUPABASE_SECRET_KEY（或 SUPABASE_SERVICE_ROLE_KEY）
   CLAUDE_CONTRIBUTION_PERSIST_ENABLED:
     process.env.NEXT_PUBLIC_CLAUDE_CONTRIBUTION_PERSIST_ENABLED !== 'false',
-  CLAUDE_CONTRIBUTION_EVENT_LIMIT:
-    Number(process.env.NEXT_PUBLIC_CLAUDE_CONTRIBUTION_EVENT_LIMIT || 50000)
+  CLAUDE_CONTRIBUTION_EVENT_LIMIT: Number(
+    process.env.NEXT_PUBLIC_CLAUDE_CONTRIBUTION_EVENT_LIMIT || 50000
+  )
 }
 export default CONFIG

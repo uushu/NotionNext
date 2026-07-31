@@ -24,6 +24,20 @@ const normalizeDate = value => {
   return date
 }
 
+const toTimestampMs = value => {
+  if (value === null || value === undefined || value === '') return 0
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? Math.trunc(value) : 0
+  }
+  const parsed = Date.parse(String(value))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const normalizeRepositoryId = value => {
+  if (!value) return ''
+  return String(value).replace(/-/g, '').trim().toLowerCase()
+}
+
 const formatInstantInContributionTimeZone = value => {
   const date = normalizeDate(value)
   if (!date) return ''
@@ -37,9 +51,7 @@ const formatInstantInContributionTimeZone = value => {
 export const getContributionDayKey = post => {
   const rawDate =
     post?.date?.start_date || post?.publishDay || post?.publishDate
-  const dateOnlyMatch = String(rawDate || '').match(
-    /^(\d{4})-(\d{2})-(\d{2})$/
-  )
+  const dateOnlyMatch = String(rawDate || '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
   if (dateOnlyMatch) return dateOnlyMatch[0]
   return formatInstantInContributionTimeZone(rawDate)
 }
@@ -53,11 +65,10 @@ const calendarDateFromDayKey = dayKey => {
 const getContributionToday = () =>
   calendarDateFromDayKey(formatInstantInContributionTimeZone(new Date()))
 
-
 const formatDayKey = date => formatInstantInContributionTimeZone(date)
 
 export const deduplicateContributionEvents = events => {
-  const latestEventByPostAndDay = new Map()
+  const latestEventByTypePostAndDay = new Map()
 
   events.forEach(event => {
     if (
@@ -68,17 +79,18 @@ export const deduplicateContributionEvents = events => {
       return
     }
 
-    const key = `${event.postId}:${formatDayKey(event.date)}`
-    const previousEvent = latestEventByPostAndDay.get(key)
+    const type = event.type === 'create' ? 'create' : 'update'
+    const key = `${type}:${event.postId}:${formatDayKey(event.date)}`
+    const previousEvent = latestEventByTypePostAndDay.get(key)
     if (
       !previousEvent ||
       event.date.getTime() >= previousEvent.date.getTime()
     ) {
-      latestEventByPostAndDay.set(key, event)
+      latestEventByTypePostAndDay.set(key, event)
     }
   })
 
-  return Array.from(latestEventByPostAndDay.values())
+  return Array.from(latestEventByTypePostAndDay.values())
 }
 
 const startOfWeekSunday = date => {
@@ -206,7 +218,8 @@ export default function ProfileHome(props) {
   const {
     posts = [],
     homePostCandidates = posts,
-    readmePage
+    readmePage,
+    contributionEvents: persistedContributionEvents = []
   } = props
   const heatmapGridRef = useRef(null)
   const tooltipTimerRef = useRef(null)
@@ -284,7 +297,7 @@ export default function ProfileHome(props) {
 
     timelinePosts.forEach(post => {
       events.push({
-        type: 'publish',
+        type: 'create',
         postId: post.id,
         title: post.title,
         href: post.href,
@@ -295,10 +308,38 @@ export default function ProfileHome(props) {
     return events
   }, [timelinePosts])
 
-  const contributionEvents = useMemo(
-    () => deduplicateContributionEvents(fallbackContributionEvents),
-    [fallbackContributionEvents]
-  )
+  const contributionEvents = useMemo(() => {
+    const persistedUpdates = Array.isArray(persistedContributionEvents)
+      ? persistedContributionEvents
+          .filter(event => event?.type === 'update')
+          .map(event => {
+            const postId = normalizeRepositoryId(
+              event?.repositoryId || event?.identifier || event?.postId
+            )
+            const timestampMs = toTimestampMs(
+              event?.timestampMs ||
+                event?.timestamp ||
+                event?.date ||
+                event?.time
+            )
+            if (!postId || !timestampMs) return null
+
+            return {
+              type: 'update',
+              postId,
+              title: event?.title || 'Untitled',
+              href: event?.href || '#',
+              date: new Date(timestampMs)
+            }
+          })
+          .filter(Boolean)
+      : []
+
+    return deduplicateContributionEvents([
+      ...fallbackContributionEvents,
+      ...persistedUpdates
+    ])
+  }, [persistedContributionEvents, fallbackContributionEvents])
 
   const years = useMemo(() => {
     const yearSet = new Set(
@@ -377,9 +418,7 @@ export default function ProfileHome(props) {
     if (isYearModeActive) {
       let lastWeekIndex = -1
       for (let month = 0; month < 12; month++) {
-        const firstDayOfMonth = new Date(
-          Date.UTC(selectedYear, month, 1, 12)
-        )
+        const firstDayOfMonth = new Date(Date.UTC(selectedYear, month, 1, 12))
         const monthWeekIndex = Math.floor(
           (startOfWeekSunday(firstDayOfMonth).getTime() - start.getTime()) /
             MS_PER_WEEK

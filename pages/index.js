@@ -13,6 +13,12 @@ import { DynamicLayout } from '@/themes/theme'
 import ClaudeProfileHome from '@/themes/claude/components/ProfileHome'
 import { generateRedirectJson } from '@/lib/utils/redirect'
 import { checkDataFromAlgolia } from '@/lib/plugins/algolia'
+import {
+  buildContributionPostSnapshot,
+  isContributionStoreEnabled,
+  listContributionEvents,
+  syncContributionSnapshots
+} from '@/lib/server/claude/contributionStore'
 import pLimit from 'p-limit'
 import { adapterNotionBlockMap } from '@/lib/utils/notion.util'
 
@@ -28,8 +34,7 @@ const normalizeSlug = value =>
 async function getClaudeReadmePage(allPages) {
   const readmePage = allPages?.find(
     page =>
-      page?.status === 'Published' &&
-      normalizeSlug(page?.slug) === 'readme.md'
+      page?.status === 'Published' && normalizeSlug(page?.slug) === 'readme.md'
   )
 
   if (!readmePage) return null
@@ -80,6 +85,39 @@ async function getClaudeReadmePage(allPages) {
   }
 }
 
+async function getClaudeContributionEvents(publishedPosts, notionConfig) {
+  const persistEnabled = siteConfig(
+    'CLAUDE_CONTRIBUTION_PERSIST_ENABLED',
+    true,
+    notionConfig
+  )
+  if (!persistEnabled) return []
+  if (!isContributionStoreEnabled()) {
+    console.warn(
+      '[Contrib] Persistence is enabled but Supabase credentials are missing.'
+    )
+    return []
+  }
+
+  const snapshots = publishedPosts
+    .filter(post => normalizeSlug(post?.slug) !== 'readme.md')
+    .map(buildContributionPostSnapshot)
+    .filter(Boolean)
+
+  try {
+    await syncContributionSnapshots(snapshots)
+    return await listContributionEvents({
+      limit: siteConfig('CLAUDE_CONTRIBUTION_EVENT_LIMIT', 50000, notionConfig)
+    })
+  } catch (error) {
+    console.warn(
+      '[Contrib] Failed to sync contribution history:',
+      error?.message || error
+    )
+    return []
+  }
+}
+
 /**
  * 首页布局
  * @param {*} props
@@ -105,11 +143,7 @@ export async function getStaticProps(req) {
   const { locale } = req
   const from = 'index'
   const props = await fetchGlobalAllData({ from, locale })
-  const resolvedTheme = siteConfig(
-    'THEME',
-    BLOG.THEME,
-    props?.NOTION_CONFIG
-  )
+  const resolvedTheme = siteConfig('THEME', BLOG.THEME, props?.NOTION_CONFIG)
 
   if (process.env.NODE_ENV === 'development') {
     const configTheme = BLOG.THEME
@@ -151,7 +185,12 @@ export async function getStaticProps(req) {
   props.homePostCandidates = cleanPostSummaries(publishedPosts)
 
   if (resolvedTheme === 'claude') {
-    props.readmePage = await getClaudeReadmePage(props.allPages)
+    const [readmePage, contributionEvents] = await Promise.all([
+      getClaudeReadmePage(props.allPages),
+      getClaudeContributionEvents(publishedPosts, props?.NOTION_CONFIG)
+    ])
+    props.readmePage = readmePage
+    props.contributionEvents = contributionEvents
   }
 
   // 处理分页

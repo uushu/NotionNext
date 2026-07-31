@@ -27,7 +27,7 @@ const posts = Array.from({ length: 6 }, (_, index) => {
 })
 
 describe('Claude ProfileHome contribution events', () => {
-  it('uses the editable article date as the only contribution day', () => {
+  it('uses the editable article date for the creation contribution day', () => {
     const post = {
       date: { start_date: '2026-07-30' },
       publishDate: new Date('2026-07-31T08:00:00+08:00').getTime(),
@@ -43,7 +43,7 @@ describe('Claude ProfileHome contribution events', () => {
     ).toBe('2026-08-01')
   })
 
-  it('counts a same-day publish and edit once and keeps the latest time', () => {
+  it('counts same-day creation and update as two different contributions', () => {
     const events = [
       {
         type: 'create',
@@ -59,8 +59,27 @@ describe('Claude ProfileHome contribution events', () => {
 
     const result = deduplicateContributionEvents(events)
 
+    expect(result).toHaveLength(2)
+    expect(result.map(event => event.type)).toEqual(['create', 'update'])
+  })
+
+  it('counts multiple updates to the same post on one day once', () => {
+    const events = [
+      {
+        type: 'update',
+        postId: 'post-1',
+        date: new Date('2026-07-26T09:00:00+08:00')
+      },
+      {
+        type: 'update',
+        postId: 'post-1',
+        date: new Date('2026-07-26T18:30:00+08:00')
+      }
+    ]
+
+    const result = deduplicateContributionEvents(events)
+
     expect(result).toHaveLength(1)
-    expect(result[0].type).toBe('update')
     expect(result[0].date.toISOString()).toBe('2026-07-26T10:30:00.000Z')
   })
 
@@ -96,6 +115,73 @@ describe('Claude ProfileHome contribution events', () => {
     ]
 
     expect(deduplicateContributionEvents(events)).toHaveLength(2)
+  })
+
+  it('combines article Date creation with persisted update history', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-31T12:00:00+08:00'))
+    const article = {
+      id: 'post-1',
+      title: '文章',
+      href: '/article/post-1',
+      date: { start_date: '2026-07-30' },
+      lastEditedDate: '2026-07-31T08:00:00+08:00'
+    }
+    const contributionEvents = [
+      {
+        type: 'update',
+        repositoryId: 'post-1',
+        timestampMs: new Date('2026-07-31T08:00:00+08:00').getTime()
+      }
+    ]
+
+    const { container } = render(
+      <ProfileHome
+        posts={[article]}
+        homePostCandidates={[article]}
+        contributionEvents={contributionEvents}
+      />
+    )
+
+    expect(
+      screen.getByRole('heading', { name: '2 contributions in the last year' })
+    ).toBeInTheDocument()
+    expect(
+      container.querySelectorAll(
+        '.claude-contrib-grid > .claude-contrib-cell.level-1'
+      )
+    ).toHaveLength(2)
+    jest.useRealTimers()
+  })
+
+  it('keeps same-day creation and update in one level-2 cell', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-31T12:00:00+08:00'))
+    const article = {
+      id: 'post-1',
+      title: '文章',
+      href: '/article/post-1',
+      date: { start_date: '2026-07-31' }
+    }
+
+    const { container } = render(
+      <ProfileHome
+        posts={[article]}
+        homePostCandidates={[article]}
+        contributionEvents={[
+          {
+            type: 'update',
+            repositoryId: 'post-1',
+            timestampMs: new Date('2026-07-31T18:00:00+08:00').getTime()
+          }
+        ]}
+      />
+    )
+
+    expect(
+      container.querySelectorAll(
+        '.claude-contrib-grid > .claude-contrib-cell.level-2'
+      )
+    ).toHaveLength(1)
+    jest.useRealTimers()
   })
 })
 

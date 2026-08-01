@@ -2,6 +2,7 @@ import BLOG from '@/blog.config'
 import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { DynamicLayout } from '@/themes/theme'
+import { isExport } from '@/lib/utils/buildMode'
 import { useRouter } from 'next/router'
 
 /**
@@ -23,7 +24,7 @@ export async function getStaticProps(req) {
   delete props.allPages
   return {
     props,
-    revalidate: process.env.EXPORT
+    revalidate: isExport()
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

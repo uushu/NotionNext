@@ -4,6 +4,7 @@ import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { DynamicLayout } from '@/themes/theme'
 import { getPageBlockCacheKey } from '@/lib/db/notion/getPostBlocks'
+import { isExport } from '@/lib/utils/buildMode'
 
 const Index = props => {
   const { keyword } = props
@@ -41,7 +42,7 @@ export async function getStaticProps({ params: { keyword, page }, locale }) {
   delete props.allPages
   return {
     props,
-    revalidate: process.env.EXPORT
+    revalidate: isExport()
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

@@ -3,6 +3,7 @@ import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 // import { getGlobalData } from '@/lib/db/getSiteData'
 import { DynamicLayout } from '@/themes/theme'
+import { isExport } from '@/lib/utils/buildMode'
 
 /**
  * 登录
@@ -23,7 +24,7 @@ export async function getStaticProps(req) {
   delete props.allPages
   return {
     props,
-    revalidate: process.env.EXPORT
+    revalidate: isExport()
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

@@ -153,7 +153,7 @@ describe('Claude ProfileHome contribution events', () => {
     jest.useRealTimers()
   })
 
-  it('keeps same-day creation and update in one level-2 cell', () => {
+  it('keeps a late same-day update in today\'s level-2 cell', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-07-31T12:00:00+08:00'))
     const article = {
       id: 'post-1',
@@ -170,7 +170,7 @@ describe('Claude ProfileHome contribution events', () => {
           {
             type: 'update',
             repositoryId: 'post-1',
-            timestampMs: new Date('2026-07-31T18:00:00+08:00').getTime()
+            timestampMs: new Date('2026-07-31T23:00:00+08:00').getTime()
           }
         ]}
       />

@@ -1,3 +1,5 @@
+const { isExport } = require('../lib/utils/buildMode')
+
 /**
  * 开发人员可能需要关注的配置
  */
@@ -16,7 +18,7 @@ module.exports = {
   // 若不想用缓存，请在 .env.local 中设置 ENABLE_CACHE=false（字符串即可）。
   ENABLE_CACHE:
     process.env.ENABLE_CACHE === undefined ? true : process.env.ENABLE_CACHE,
-  isProd: process.env.VERCEL_ENV === 'production' || process.env.EXPORT, // distinguish between development and production environment (ref: https://vercel.com/docs/environment-variables#system-environment-variables)
+  isProd: process.env.VERCEL_ENV === 'production' || isExport(), // distinguish between development and production environment (ref: https://vercel.com/docs/environment-variables#system-environment-variables)
   BUNDLE_ANALYZER: process.env.ANALYZE === 'true' || false, // 是否展示编译依赖内容与大小
   VERSION: (() => {
     try {

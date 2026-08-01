@@ -2,6 +2,7 @@ import BLOG from '@/blog.config'
 import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { DynamicLayout } from '@/themes/theme'
+import { isExport } from '@/lib/utils/buildMode'
 
 /**
  * 分类页
@@ -38,7 +39,7 @@ export async function getStaticProps({ params: { category, page } }) {
 
   return {
     props,
-    revalidate: process.env.EXPORT
+    revalidate: isExport()
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

@@ -9,6 +9,7 @@ import { formatNotionBlock } from '@/lib/db/notion/getPostBlocks'
 import { generateRobotsTxt } from '@/lib/utils/robots.txt'
 import { generateRss, shouldGenerateRssForLocale } from '@/lib/utils/rss'
 import { generateSitemapXml } from '@/lib/utils/sitemap.xml'
+import { isExport } from '@/lib/utils/buildMode'
 import { DynamicLayout } from '@/themes/theme'
 import ClaudeProfileHome from '@/themes/claude/components/ProfileHome'
 import { generateRedirectJson } from '@/lib/utils/redirect'
@@ -261,7 +262,7 @@ export async function getStaticProps(req) {
 
   return {
     props,
-    revalidate: process.env.EXPORT
+    revalidate: isExport()
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

@@ -1,14 +1,16 @@
-const mockRuntimeCache = {
-  get: jest.fn(),
-  set: jest.fn(),
-  delete: jest.fn()
-}
-
-jest.mock('@vercel/functions', () => ({
-  getCache: jest.fn(() => mockRuntimeCache)
-}))
+jest.mock('@vercel/functions', () => {
+  const runtimeCache = {
+    get: jest.fn(),
+    set: jest.fn(),
+    delete: jest.fn()
+  }
+  global.__mockVercelRuntimeCache = runtimeCache
+  return { getCache: jest.fn(() => runtimeCache) }
+})
 
 import VercelCache, { resolveCacheTtl } from '@/lib/cache/vercel_cache'
+
+const mockRuntimeCache = global.__mockVercelRuntimeCache
 
 describe('Vercel Notion runtime cache', () => {
   beforeEach(() => {

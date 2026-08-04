@@ -38,13 +38,9 @@ export default async function handler(req, res) {
     }
 
     if (payload?.verification_token && !payload?.type) {
-      console.info(
-        '[NotionWebhook] Verification token received:',
-        payload.verification_token
-      )
       return res.status(200).json({
         ok: true,
-        verificationToken: payload.verification_token
+        verificationRequestAccepted: true
       })
     }
 

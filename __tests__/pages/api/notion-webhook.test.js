@@ -72,17 +72,18 @@ describe('POST /api/notion-webhook', () => {
     }
   })
 
-  it('accepts the initial Notion verification request without processing content', async () => {
+  it('accepts the initial Notion verification request without exposing its token', async () => {
     const { req } = createRequest({ verification_token: 'secret_verify' })
     const res = createResponse()
 
     await handler(req, res)
 
     expect(res.statusCode).toBe(200)
-    expect(res.body).toMatchObject({
+    expect(res.body).toEqual({
       ok: true,
-      verificationToken: 'secret_verify'
+      verificationRequestAccepted: true
     })
+    expect(JSON.stringify(res.body)).not.toContain('secret_verify')
     expect(mockProcessNotionWebhookEvent).not.toHaveBeenCalled()
   })
 

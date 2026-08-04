@@ -46,7 +46,7 @@ describe('blog.config boolean environment values', () => {
     const config = loadBlogConfig()
 
     expect(config.NOTION_PAGE_ID).toBe(
-      'a3e560c488bc83b18c0407719b46a0fc'
+      '3a3560c488bc83c5bec601388734c5db'
     )
   })
 

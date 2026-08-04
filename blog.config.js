@@ -7,7 +7,7 @@ const BLOG = {
   // utto的学习屋：生产环境使用的 Notion 主数据库。
   // Vercel 中仍建议显式设置 NOTION_PAGE_ID；仓库默认值与生产库保持一致，避免环境变量丢失时回退到旧库。
   NOTION_PAGE_ID:
-    process.env.NOTION_PAGE_ID || 'a3e560c488bc83b18c0407719b46a0fc',
+    process.env.NOTION_PAGE_ID || '3a3560c488bc83c5bec601388734c5db',
   THEME: process.env.NEXT_PUBLIC_THEME || 'claude', // 当前主题，在themes文件夹下可找到所有支持的主题；主题名称就是文件夹名，例如 claude,endspace,example,fukasawa,fuwari,gitbook,heo,hexo,landing,matery,medium,next,nobelium,plog,simple
   LANG: process.env.NEXT_PUBLIC_LANG || 'zh-CN', // e.g 'zh-CN','en-US'  see /lib/lang.js for more.
   SINCE: process.env.NEXT_PUBLIC_SINCE || 2024, // e.g if leave this empty, current year will be used.
@@ -29,7 +29,7 @@ const BLOG = {
   KEYWORDS:
     process.env.NEXT_PUBLIC_KEYWORD ||
     'utto,penpen,兔子灵宠,游戏开发,C++,C#,Unity,游戏Demo,学习笔记,项目实践,生活记录', // 网站关键词 英文逗号隔开
-  BLOG_FAVICON: process.env.NEXT_PUBLIC_FAVICON || '/utto-favicon.svg', // blog favicon 配置, 默认使用 /public/favicon.ico，支持在线图片，如：https://img.imesong.com/favicon.png
+  BLOG_FAVICON: process.env.NEXT_PUBLIC_FAVICON || '/utto-favicon.svg', // blog favicon 配置, 默认使用 /public/favicon.ico，支持在线图片，如 https://img.imesong.com/favicon.png
   SOCIAL_IMAGE:
     process.env.NEXT_PUBLIC_SOCIAL_IMAGE || '/images/utto-share.jpg', // 默认社交分享图，文章有独立封面时仍优先使用文章封面
   BEI_AN: process.env.NEXT_PUBLIC_BEI_AN || '', // 备案号 闽ICP备XXXXXX
@@ -47,7 +47,7 @@ const BLOG = {
   ...require('./conf/analytics.config'), // 站点访问统计
   ...require('./conf/image.config'), // 网站图片相关配置
   ...require('./conf/font.config'), // 网站字体
-  ...require('./conf/right-click-menu'), // 自定义右键菜单
+  ...require('./conf/right-click-menu'), // 自定义右键菜单相关设置
   ...require('./conf/code.config'), // 网站代码块样式
   ...require('./conf/animation.config'), // 动效美化效果
   ...require('./conf/widget.config'), // 悬浮在网页上的挂件，聊天客服、宠物挂件、音乐播放器等
@@ -64,7 +64,7 @@ const BLOG = {
 
   // 自定义外部脚本，外部样式
   CUSTOM_EXTERNAL_JS: [''], // e.g. ['http://xx.com/script.js','http://xx.com/script.js']
-  CUSTOM_EXTERNAL_CSS: [''], // e.g. ['http://xx.com/style.css']
+  CUSTOM_EXTERNAL_CSS: [''], // e.g. ['http://xx.com/style.css','http://xx.com/style.css']
 
   // 自定义菜单
   CUSTOM_MENU: parseBooleanEnv(process.env.NEXT_PUBLIC_CUSTOM_MENU, true), // 支持Menu类型的菜单，替代了3.12版本前的Page类型

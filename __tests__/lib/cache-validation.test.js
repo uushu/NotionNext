@@ -105,11 +105,15 @@ describe('critical Notion cache validation', () => {
   })
 
   test('throws before an invalid critical source result can be cached', () => {
-    expect(() =>
+    let error
+
+    try {
       assertCacheableSourceValue('global_data_zh-CN_root', {})
-    ).toThrow(
-      expect.objectContaining({ code: 'INVALID_NOTION_SNAPSHOT' })
-    )
+    } catch (caughtError) {
+      error = caughtError
+    }
+
+    expect(error).toMatchObject({ code: 'INVALID_NOTION_SNAPSHOT' })
   })
 
   test('passes valid critical source data through unchanged', () => {

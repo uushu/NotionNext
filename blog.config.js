@@ -3,7 +3,9 @@
 const { parseBooleanEnv } = require('./lib/utils/env')
 
 const BLOG = {
-  API_BASE_URL: process.env.API_BASE_URL || 'https://www.notion.so/api/v3', // API默认请求地址,可以配置成自己的地址例如：https://[xxxxx].notion.site/api/v3
+  API_BASE_URL:
+    process.env.API_BASE_URL ||
+    'https://salty-shift-d3b.notion.site/api/v3', // 使用已发布的 Notion Site API，避免 www.notion.so 对公开数据库返回 403。
   // utto的学习屋：生产环境使用的 Notion 主数据库。
   // Vercel 中仍建议显式设置 NOTION_PAGE_ID；仓库默认值与生产库保持一致，避免环境变量丢失时回退到旧库。
   NOTION_PAGE_ID:

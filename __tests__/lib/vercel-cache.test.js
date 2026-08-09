@@ -108,13 +108,23 @@ describe('Vercel Notion runtime cache', () => {
     )
   })
 
-  test('uses the last-known-good snapshot when the deployment cache misses', async () => {
+  test('does not treat the last-known-good snapshot as a normal cache hit', async () => {
     const snapshot = createValidSnapshot()
     mockRuntimeCache.get.mockResolvedValue(null)
     mockLastKnownGoodCache.get.mockResolvedValue(snapshot)
 
     await expect(
       VercelCache.getCache('global_data_zh-CN_test')
+    ).resolves.toBeNull()
+    expect(mockLastKnownGoodCache.get).not.toHaveBeenCalled()
+  })
+
+  test('reads the last-known-good snapshot only when explicitly requested', async () => {
+    const snapshot = createValidSnapshot()
+    mockLastKnownGoodCache.get.mockResolvedValue(snapshot)
+
+    await expect(
+      VercelCache.getLastKnownGoodCache('global_data_zh-CN_test')
     ).resolves.toEqual(snapshot)
   })
 
@@ -125,10 +135,11 @@ describe('Vercel Notion runtime cache', () => {
 
     await expect(
       VercelCache.getCache('global_data_zh-CN_test')
-    ).resolves.toEqual(snapshot)
+    ).resolves.toBeNull()
     expect(mockRuntimeCache.delete).toHaveBeenCalledWith(
       'global_data_zh-CN_test'
     )
+    expect(mockLastKnownGoodCache.get).not.toHaveBeenCalled()
   })
 
   test('refuses to store invalid critical Notion snapshots', async () => {

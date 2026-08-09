@@ -4,19 +4,54 @@ jest.mock('@vercel/functions', () => {
     set: jest.fn(),
     delete: jest.fn()
   }
+  const lastKnownGoodCache = {
+    get: jest.fn(),
+    set: jest.fn(),
+    delete: jest.fn()
+  }
+
   global.__mockVercelRuntimeCache = runtimeCache
-  return { getCache: jest.fn(() => runtimeCache) }
+  global.__mockVercelLastKnownGoodCache = lastKnownGoodCache
+
+  return {
+    getCache: jest.fn(({ namespace }) =>
+      namespace === 'notion:last-known-good'
+        ? lastKnownGoodCache
+        : runtimeCache
+    )
+  }
 })
 
-import VercelCache, { resolveCacheTtl } from '@/lib/cache/vercel_cache'
+import VercelCache, {
+  LAST_KNOWN_GOOD_TTL_SECONDS,
+  resolveCacheTtl
+} from '@/lib/cache/vercel_cache'
 
 const mockRuntimeCache = global.__mockVercelRuntimeCache
+const mockLastKnownGoodCache = global.__mockVercelLastKnownGoodCache
+
+function createValidSnapshot() {
+  return {
+    siteInfo: { title: 'Utto Blog' },
+    allPages: [
+      {
+        id: 'post-1',
+        slug: 'article/test',
+        title: 'Test',
+        type: 'Post',
+        status: 'Published'
+      }
+    ]
+  }
+}
 
 describe('Vercel Notion runtime cache', () => {
   beforeEach(() => {
-    mockRuntimeCache.get.mockReset()
-    mockRuntimeCache.set.mockReset()
-    mockRuntimeCache.delete.mockReset()
+    for (const cache of [mockRuntimeCache, mockLastKnownGoodCache]) {
+      cache.get.mockReset()
+      cache.set.mockReset()
+      cache.delete.mockReset()
+    }
   })
 
   test.each([undefined, null, '', 0, 'invalid'])(
@@ -37,11 +72,13 @@ describe('Vercel Notion runtime cache', () => {
   )
 
   test('does not forward a null TTL to Vercel Runtime Cache', async () => {
-    await VercelCache.setCache('global_data_zh-CN_test', { posts: [] }, null)
+    const snapshot = createValidSnapshot()
+
+    await VercelCache.setCache('global_data_zh-CN_test', snapshot, null)
 
     expect(mockRuntimeCache.set).toHaveBeenCalledWith(
       'global_data_zh-CN_test',
-      { posts: [] },
+      snapshot,
       expect.objectContaining({
         ttl: expect.any(Number),
         tags: ['notion']
@@ -53,5 +90,62 @@ describe('Vercel Notion runtime cache', () => {
   test('preserves an explicit positive TTL', () => {
     expect(resolveCacheTtl(30)).toBe(30)
     expect(resolveCacheTtl('15')).toBe(15)
+  })
+
+  test('stores validated site data in the deployment and stable caches', async () => {
+    const snapshot = createValidSnapshot()
+
+    await VercelCache.setCache('global_data_zh-CN_test', snapshot, 30)
+
+    expect(mockRuntimeCache.set).toHaveBeenCalledTimes(1)
+    expect(mockLastKnownGoodCache.set).toHaveBeenCalledWith(
+      'global_data_zh-CN_test',
+      snapshot,
+      expect.objectContaining({
+        ttl: LAST_KNOWN_GOOD_TTL_SECONDS,
+        tags: ['notion-last-known-good']
+      })
+    )
+  })
+
+  test('uses the last-known-good snapshot when the deployment cache misses', async () => {
+    const snapshot = createValidSnapshot()
+    mockRuntimeCache.get.mockResolvedValue(null)
+    mockLastKnownGoodCache.get.mockResolvedValue(snapshot)
+
+    await expect(
+      VercelCache.getCache('global_data_zh-CN_test')
+    ).resolves.toEqual(snapshot)
+  })
+
+  test('deletes an invalid deployment snapshot before using the fallback', async () => {
+    const snapshot = createValidSnapshot()
+    mockRuntimeCache.get.mockResolvedValue({})
+    mockLastKnownGoodCache.get.mockResolvedValue(snapshot)
+
+    await expect(
+      VercelCache.getCache('global_data_zh-CN_test')
+    ).resolves.toEqual(snapshot)
+    expect(mockRuntimeCache.delete).toHaveBeenCalledWith(
+      'global_data_zh-CN_test'
+    )
+  })
+
+  test('refuses to store invalid critical Notion snapshots', async () => {
+    await expect(
+      VercelCache.setCache('global_data_zh-CN_test', {}, 30)
+    ).rejects.toMatchObject({ code: 'INVALID_NOTION_SNAPSHOT' })
+
+    expect(mockRuntimeCache.set).not.toHaveBeenCalled()
+    expect(mockLastKnownGoodCache.set).not.toHaveBeenCalled()
+  })
+
+  test('does not copy ordinary page-block entries into the stable cache', async () => {
+    const blockMap = { block: { page: { value: { id: 'page' } } } }
+
+    await VercelCache.setCache('page_block_page', blockMap, 30)
+
+    expect(mockRuntimeCache.set).toHaveBeenCalledTimes(1)
+    expect(mockLastKnownGoodCache.set).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,6 @@
 const CONFIG = {
   // 博客标题：生产环境可由 Notion 配置中心或环境变量覆盖。
-  CLAUDE_BLOG_NAME: process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME || 'utto的学习屋',
+  CLAUDE_BLOG_NAME: process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME || 'uto｜Recording Everything',
   CLAUDE_BLOG_NAME_EN:
     process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME_EN ||
     process.env.NEXT_PUBLIC_CLAUDE_BLOG_NAME ||

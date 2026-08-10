@@ -357,7 +357,7 @@ const getSEOMeta = (props, router, locale, socialImage) => {
   switch (router.route) {
     case '/':
       return {
-        title: `${siteInfo?.title} | ${siteInfo?.description}`,
+        title: 'uto｜Recording Everything',
         description: `${siteInfo?.description}`,
         image: socialImage,
         slug: '',

@@ -6,7 +6,7 @@ import { getStaticPathsBase } from '@/lib/build/staticPaths'
 import { isExport } from '@/lib/utils/buildMode'
 import { checkSlugHasOneSlash } from '@/lib/utils/post'
 
-const isStaticExport = isExport()
+const isStaticExport = process.env.EXPORT === 'true'
 
 /**
  * 根据notion的slug访问页面

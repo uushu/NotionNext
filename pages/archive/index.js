@@ -3,7 +3,6 @@ import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { isBrowser } from '@/lib/utils'
 import { formatDateFmt } from '@/lib/utils/formatDate'
-import { isExport } from '@/lib/utils/buildMode'
 import { DynamicLayout } from '@/themes/theme'
 import { useEffect } from 'react'
 
@@ -61,7 +60,7 @@ export async function getStaticProps({ locale }) {
 
   return {
     props,
-    revalidate: isExport()
+    revalidate: process.env.EXPORT
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

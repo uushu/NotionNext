@@ -3,7 +3,6 @@ import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData, getPostBlocks } from '@/lib/db/SiteDataApi'
 import { formatNotionBlock } from '@/lib/db/notion/getPostBlocks'
 import { adapterNotionBlockMap } from '@/lib/utils/notion.util'
-import { isExport } from '@/lib/utils/buildMode'
 import { DynamicLayout } from '@/themes/theme'
 
 /**
@@ -70,7 +69,7 @@ export async function getStaticProps({ params: { page }, locale }) {
   delete props.allPages
   return {
     props,
-    revalidate: isExport()
+    revalidate: process.env.EXPORT
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

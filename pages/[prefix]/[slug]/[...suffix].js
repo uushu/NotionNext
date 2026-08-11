@@ -6,7 +6,7 @@ import { isExport } from '@/lib/utils/buildMode'
 import { checkSlugHasMorThanTwoSlash } from '@/lib/utils/post'
 import Slug from '..'
 
-const isStaticExport = isExport()
+const isStaticExport = process.env.EXPORT === 'true'
 
 /**
  * 根据notion的slug访问页面

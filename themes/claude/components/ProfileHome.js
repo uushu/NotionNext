@@ -329,12 +329,7 @@ export default function ProfileHome(props) {
               postId,
               title: event?.title || 'Untitled',
               href: event?.href || '#',
-              // Heatmap ranges are calendar days represented at UTC noon.
-              // Normalize persisted instants to the same Asia/Shanghai day so
-              // updates after 12:00 UTC are not excluded from "today".
-              date: calendarDateFromDayKey(
-                formatInstantInContributionTimeZone(new Date(timestampMs))
-              )
+              date: new Date(timestampMs)
             }
           })
           .filter(Boolean)

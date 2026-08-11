@@ -5,7 +5,6 @@ import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { DynamicLayout } from '@/themes/theme'
 import { getPageContentText } from '@/lib/db/notion/getPageContentText'
 import { getPageBlockCacheKey } from '@/lib/db/notion/getPostBlocks'
-import { isExport } from '@/lib/utils/buildMode'
 
 const Index = props => {
   const theme = siteConfig('THEME', BLOG.THEME, props.NOTION_CONFIG)
@@ -44,7 +43,7 @@ export async function getStaticProps({ params: { keyword }, locale }) {
   props.keyword = keyword
   return {
     props,
-    revalidate: isExport()
+    revalidate: process.env.EXPORT
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

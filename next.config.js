@@ -216,7 +216,7 @@ const nextConfig = {
     }
   },
   // 多语言， 在export时禁用
-  i18n: isExport()
+  i18n: process.env.EXPORT
     ? undefined
     : {
       defaultLocale: BLOG.LANG,
@@ -251,7 +251,7 @@ const nextConfig = {
   },
 
   // 默认将feed重定向至 /public/rss/feed.xml
-  redirects: isExport()
+  redirects: process.env.EXPORT
     ? undefined
     : () => {
       return [
@@ -263,7 +263,7 @@ const nextConfig = {
       ]
     },
   // 重写url
-  rewrites: isExport()
+  rewrites: process.env.EXPORT
     ? undefined
     : () => {
       // 处理多语言重定向
@@ -322,7 +322,7 @@ const nextConfig = {
         }
       ]
     },
-  headers: isExport()
+  headers: process.env.EXPORT
     ? undefined
     : () => {
       return [

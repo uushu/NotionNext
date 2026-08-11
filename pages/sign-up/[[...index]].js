@@ -2,7 +2,6 @@ import BLOG from '@/blog.config'
 import { siteConfig } from '@/lib/config'
 import { fetchGlobalAllData } from '@/lib/db/SiteDataApi'
 import { DynamicLayout } from '@/themes/theme'
-import { isExport } from '@/lib/utils/buildMode'
 
 /**
  * 注册
@@ -23,7 +22,7 @@ export async function getStaticProps(req) {
   delete props.allPages
   return {
     props,
-    revalidate: isExport()
+    revalidate: process.env.EXPORT
       ? undefined
       : siteConfig(
           'NEXT_REVALIDATE_SECOND',

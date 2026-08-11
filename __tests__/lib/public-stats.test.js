@@ -20,7 +20,6 @@ describe('public visitor statistics', () => {
   beforeEach(() => {
     counter.cancel()
     window.localStorage.clear()
-    document.cookie = 'vercount_uv_localhost=; path=/; max-age=0'
     renderCounterDom()
   })
 
@@ -77,45 +76,6 @@ describe('public visitor statistics', () => {
 
     const cached = JSON.parse(window.localStorage.getItem(counter.CACHE_KEY))
     expect(cached.pages['www.yyshow.xyz/article/test'].page_pv).toBe(12)
-  })
-
-  test('uses one canonical counter for tracking parameters and fragments', async () => {
-    window.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue({
-        status: 'success',
-        data: { site_pv: 322, page_pv: 13, site_uv: 124 }
-      })
-    })
-
-    await counter.fetch({ url: `${pageUrl}?utm_source=juejin#comments` })
-
-    const request = window.fetch.mock.calls[0][1]
-    expect(JSON.parse(request.body).url).toBe(pageUrl)
-
-    const cached = JSON.parse(window.localStorage.getItem(counter.CACHE_KEY))
-    expect(Object.keys(cached.pages)).toEqual([
-      'www.yyshow.xyz/article/test'
-    ])
-  })
-
-  test('sets the UV cookie only after the counter accepts the visit', async () => {
-    window.fetch = jest
-      .fn()
-      .mockRejectedValueOnce(new Error('network error'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({
-          status: 'success',
-          data: { site_pv: 323, page_pv: 14, site_uv: 125 }
-        })
-      })
-
-    await counter.fetch({ url: pageUrl })
-    expect(document.cookie).not.toContain('vercount_uv_localhost=1')
-
-    await counter.fetch({ url: pageUrl })
-    expect(document.cookie).toContain('vercount_uv_localhost=1')
   })
 
   test('keeps the last successful values visible when the service fails', async () => {

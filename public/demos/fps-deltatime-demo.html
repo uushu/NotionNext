@@ -3,72 +3,92 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>FPS / Time.deltaTime 可视化演示</title>
+<title>FPS / Time.deltaTime 演示</title>
 <style>
+  :root{color-scheme:light}
+  *{box-sizing:border-box}
   body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;padding:20px;background:#f6f7fb;color:#222}
   .card{max-width:960px;margin:0 auto;background:#fff;border:1px solid #e6e8ef;border-radius:16px;padding:20px;box-shadow:0 8px 28px rgba(0,0,0,.05)}
-  h1{font-size:24px;margin:0 0 8px}
-  p{line-height:1.65}
-  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px}
-  button{border:1px solid #cfd6e4;background:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:14px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+  button{border:1px solid #cfd6e4;background:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:14px;font:inherit;line-height:1.2;transition:background .15s,color .15s,border-color .15s}
+  button:hover{border-color:#7c91df}
+  button:focus-visible{outline:3px solid rgba(91,124,255,.3);outline-offset:2px}
   button.active{background:#222;color:#fff;border-color:#222}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0 18px}
   .stat{background:#f7f8fc;border:1px solid #e6e8ef;border-radius:12px;padding:12px}
   .stat .k{font-size:12px;color:#666;margin-bottom:6px}
-  .stat .v{font-size:22px;font-weight:700}
+  .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
   .timeline{margin:16px 0 20px}
-  .ticks{display:flex;align-items:center;gap:2px;height:28px}
-  .tick{height:22px;background:#d9e2ff;border-radius:4px;flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:#31416a;min-width:2px}
-  .legend{font-size:13px;color:#666;margin-top:6px}
+  .timeline-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .timeline-title{font-weight:700}
+  .timeline-badge{font-size:12px;color:#42527f;background:#edf1ff;border:1px solid #d9e2ff;border-radius:999px;padding:3px 8px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .timeline-labels{display:flex;justify-content:space-between;color:#68738a;font-size:11px;padding:0 4px 5px;font-variant-numeric:tabular-nums}
+  .ticks{position:relative;display:grid;gap:1px;min-height:42px;padding:7px 4px;background:#f4f6fc;border:1px solid #e1e6f2;border-radius:12px;overflow:hidden}
+  .tick{min-width:0;height:28px;background:#ced8ff;border-radius:2px;opacity:.88}
+  .tick.major{background:#8195ef}
+  .timeline-cursor{pointer-events:none;position:absolute;z-index:1;top:4px;bottom:4px;width:2px;border-radius:2px;background:#202938;box-shadow:0 0 0 2px rgba(255,255,255,.76),0 1px 5px rgba(32,41,56,.35);transform:translateX(-1px)}
+  .legend{font-size:13px;color:#555;margin:7px 0 0;line-height:1.55}
   .stageWrap{display:grid;grid-template-columns:1fr;gap:12px;margin-top:10px}
   .stage{background:#fbfbfd;border:1px solid #e6e8ef;border-radius:12px;padding:14px}
   .stage h3{margin:0 0 8px;font-size:16px}
   .track{position:relative;height:48px;border-radius:999px;background:linear-gradient(90deg,#f1f3f9,#eef2ff);overflow:hidden;border:1px solid #e2e6f2}
   .ball{position:absolute;top:9px;width:30px;height:30px;border-radius:50%;background:#5b7cff;box-shadow:0 4px 10px rgba(91,124,255,.35)}
-  .note{font-size:13px;color:#555;margin-top:8px}
+  .note{font-size:13px;color:#555;margin:8px 0 0;line-height:1.55}
   code{background:#f2f4f8;padding:2px 6px;border-radius:6px}
-  .formula{font-size:14px;background:#f7f8fc;border:1px dashed #d7ddea;border-radius:10px;padding:10px;margin-top:10px}
+  @media (max-width:480px){
+    body{padding:12px}
+    .card{padding:16px;border-radius:14px}
+    .stats{grid-template-columns:1fr}
+    .timeline-head{align-items:flex-start;flex-direction:column}
+    .timeline-badge{margin-top:-2px}
+    .stage{padding:12px}
+    .stage h3{font-size:15px}
+  }
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>FPS / 帧时间 / Time.deltaTime 可视化演示</h1>
-  <p>这个演示用于理解：<strong>FPS 越高，单位时间内帧越多，帧时间越短；Update 每帧调用一次；Time.deltaTime 就是当前帧经过的时间（秒）</strong>。</p>
-  <div class="controls">
+  <div class="controls" aria-label="选择目标 FPS">
     <button data-fps="30">30 FPS</button>
     <button data-fps="60" class="active">60 FPS</button>
     <button data-fps="120">120 FPS</button>
   </div>
+
   <div class="stats">
     <div class="stat"><div class="k">当前目标 FPS</div><div class="v" id="fpsValue">60</div></div>
     <div class="stat"><div class="k">每帧时间（Frame Time）</div><div class="v" id="frameMs">16.7 ms</div></div>
     <div class="stat"><div class="k">Time.deltaTime</div><div class="v" id="deltaValue">0.0167 s</div></div>
     <div class="stat"><div class="k">1秒内 Update 调用次数</div><div class="v" id="updateCount">约 60 次</div></div>
   </div>
-  <div class="timeline">
-    <div><strong>1秒时间轴：</strong></div>
-    <div class="ticks" id="ticks"></div>
-    <div class="legend" id="timelineText"></div>
-  </div>
+
+  <section class="timeline" aria-label="一秒时间轴">
+    <div class="timeline-head">
+      <div class="timeline-title">1秒时间轴</div>
+      <div class="timeline-badge" id="timelineBadge">60 帧 / 秒</div>
+    </div>
+    <div class="timeline-labels" aria-hidden="true">
+      <span>0 ms</span><span>250 ms</span><span>500 ms</span><span>750 ms</span><span>1000 ms</span>
+    </div>
+    <div class="ticks" id="ticks" aria-hidden="true">
+      <div class="timeline-cursor" id="timelineCursor"></div>
+    </div>
+    <p class="legend" id="timelineText"></p>
+  </section>
+
   <div class="stageWrap">
     <div class="stage">
       <h3>错误写法：<code>position += speed;</code></h3>
       <div class="track"><div class="ball" id="wrongBall"></div></div>
-      <div class="note">这里把 <code>speed</code> 当成“每帧移动多少”。FPS 越高，1秒内调用 Update 越多，所以物体会跑得更快。</div>
+      <p class="note">这里把 <code>speed</code> 当成“每帧移动多少”。FPS 越高，1秒内调用 Update 越多，所以物体会跑得更快。</p>
     </div>
     <div class="stage">
       <h3>正确写法：<code>position += speed * Time.deltaTime;</code></h3>
       <div class="track"><div class="ball" id="rightBall"></div></div>
-      <div class="note">这里把 <code>speed</code> 当成“每秒移动多少”。虽然每帧移动距离不同，但 1 秒总移动距离保持一致。</div>
+      <p class="note">这里把 <code>speed</code> 当成“每秒移动多少”。虽然每帧移动距离不同，但 1 秒总移动距离保持一致。</p>
     </div>
   </div>
-  <div class="formula">
-    <div><strong>对应关系：</strong></div>
-    <div>帧时间 = 1 秒 ÷ FPS</div>
-    <div>Time.deltaTime ≈ 当前帧时间（单位：秒）</div>
-    <div>瞬时 FPS 估计值 ≈ <code>1 / Time.deltaTime</code></div>
-  </div>
 </div>
+
 <script>
 (() => {
   const buttons = [...document.querySelectorAll('button[data-fps]')];
@@ -77,7 +97,9 @@
   const deltaValue = document.getElementById('deltaValue');
   const updateCount = document.getElementById('updateCount');
   const ticks = document.getElementById('ticks');
+  const timelineBadge = document.getElementById('timelineBadge');
   const timelineText = document.getElementById('timelineText');
+  const timelineCursor = document.getElementById('timelineCursor');
   const wrongBall = document.getElementById('wrongBall');
   const rightBall = document.getElementById('rightBall');
 
@@ -86,41 +108,62 @@
   const speedPerSecond = 220;
   const speedPerFrame = 4;
 
-  function renderInfo(){
+  function renderTimeline() {
+    const markers = document.createDocumentFragment();
+    const majorIndexes = new Set([
+      0,
+      Math.round((selectedFps - 1) * .25),
+      Math.round((selectedFps - 1) * .5),
+      Math.round((selectedFps - 1) * .75),
+      selectedFps - 1
+    ]);
+
+    ticks.replaceChildren();
+    ticks.style.gridTemplateColumns = `repeat(${selectedFps}, minmax(0, 1fr))`;
+
+    for (let i = 0; i < selectedFps; i += 1) {
+      const marker = document.createElement('span');
+      marker.className = majorIndexes.has(i) ? 'tick major' : 'tick';
+      markers.appendChild(marker);
+    }
+
+    ticks.appendChild(markers);
+    ticks.appendChild(timelineCursor);
+  }
+
+  function renderInfo() {
     const dt = 1 / selectedFps;
     fpsValue.textContent = selectedFps;
     frameMs.textContent = (dt * 1000).toFixed(1) + ' ms';
     deltaValue.textContent = dt.toFixed(4) + ' s';
     updateCount.textContent = '约 ' + selectedFps + ' 次';
-    buttons.forEach(b => b.classList.toggle('active', Number(b.dataset.fps) === selectedFps));
-
-    ticks.innerHTML = '';
-    const count = selectedFps;
-    const limit = count <= 30 ? count : (count <= 60 ? 20 : 24);
-    const labelEvery = Math.max(1, Math.round(count / limit));
-    for(let i=0;i<count;i++){
-      const d = document.createElement('div');
-      d.className = 'tick';
-      if(i % labelEvery === 0) d.textContent = 'U';
-      ticks.appendChild(d);
-    }
-    timelineText.textContent = `这一秒大约被分成 ${selectedFps} 帧，每帧约 ${(1000/selectedFps).toFixed(1)}ms；图中 U 表示一次 Update。`;
+    timelineBadge.textContent = selectedFps + ' 帧 / 秒';
+    timelineText.textContent = `这一秒被分成 ${selectedFps} 帧，每条竖线代表 1 次 Update，间隔约 ${(dt * 1000).toFixed(1)} ms。`;
+    buttons.forEach(button => {
+      button.classList.toggle('active', Number(button.dataset.fps) === selectedFps);
+    });
+    renderTimeline();
   }
 
-  function loop(now){
+  function loop(now) {
     const t = ((now - start) % 1000) / 1000;
     const wrongX = Math.min(100, selectedFps * speedPerFrame * t / (120 * speedPerFrame) * 100);
     const rightX = Math.min(100, speedPerSecond * t / speedPerSecond * 100);
+
     wrongBall.style.left = `calc(${wrongX}% - 15px)`;
     rightBall.style.left = `calc(${rightX}% - 15px)`;
+    timelineCursor.style.left = (t * 100) + '%';
+
     requestAnimationFrame(loop);
   }
 
-  buttons.forEach(b => b.addEventListener('click', () => {
-    selectedFps = Number(b.dataset.fps);
-    start = performance.now();
-    renderInfo();
-  }));
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      selectedFps = Number(button.dataset.fps);
+      start = performance.now();
+      renderInfo();
+    });
+  });
 
   renderInfo();
   requestAnimationFrame(loop);
@@ -128,4 +171,3 @@
 </script>
 </body>
 </html>
-

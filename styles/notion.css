@@ -2215,3 +2215,14 @@ html.dark .notion-link-mention-provider {
 html.dark .notion-link-mention-link {
   color: inherit;
 }
+
+/* Keep the Scroll View teaching demo visible inside its blog embed. */
+.notion-asset-wrapper-embed > div:has(> iframe[src*="/demos/scrollview-lab"]) {
+  height: 760px !important;
+}
+
+@media (max-width: 767px) {
+  .notion-asset-wrapper-embed > div:has(> iframe[src*="/demos/scrollview-lab"]) {
+    height: 1050px !important;
+  }
+}
